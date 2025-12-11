@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "71591595877",
+    "project_id": "gpi-homes-6j0y9b",
+    "storage_bucket": "gpi-homes-6j0y9b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:71591595877:android:1708400f1529f20026db8c",
+        "android_client_info": {
+          "package_name": "com.tj.gpihomes"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "71591595877-2deqiu0pf0otbr1lp6cjkn3mft15f715.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.tj.gpihomes",
+            "certificate_hash": "9bbb3186b2189ef16d8f272bdab59362c395cbb4"
+          }
+        },
+        {
+          "client_id": "71591595877-bh2hjp15lroj0ns882f8ir4r9lpo07hr.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChUo139GJ4ntdgI_aByxAG7R0T_lPreuA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "71591595877-bh2hjp15lroj0ns882f8ir4r9lpo07hr.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "71591595877-0vhsnc06c9jaag7j4mns46khp41dsbkl.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.tj.gpihomes"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

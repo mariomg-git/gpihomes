@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CLIENT_ID</key>
+	<string>71591595877-0vhsnc06c9jaag7j4mns46khp41dsbkl.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.71591595877-0vhsnc06c9jaag7j4mns46khp41dsbkl</string>
+	<key>ANDROID_CLIENT_ID</key>
+	<string>71591595877-2deqiu0pf0otbr1lp6cjkn3mft15f715.apps.googleusercontent.com</string>
+	<key>API_KEY</key>
+	<string>AIzaSyA4HfsQ6jEi4V6_jewvNMpTwRhh85CyfCU</string>
+	<key>GCM_SENDER_ID</key>
+	<string>71591595877</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.tj.gpihomes</string>
+	<key>PROJECT_ID</key>
+	<string>gpi-homes-6j0y9b</string>
+	<key>STORAGE_BUCKET</key>
+	<string>gpi-homes-6j0y9b.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:71591595877:ios:d6fb211e0a894d9026db8c</string>
+</dict>
+</plist>

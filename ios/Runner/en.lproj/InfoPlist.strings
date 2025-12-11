@@ -1,0 +1,6 @@
+NSCameraUsageDescription = "Necesitamos acceder a la camara para que pueda subir fotos de las propiedades directamente";
+NSPhotoLibraryUsageDescription = "Necesitamos Permisos para acceder a sus Fotos de propiedades";
+NSLocationWhenInUseUsageDescription = "Necesitamos acceder a su ubicacion para guardar la ubicacion de inmuebes";
+PermissionGroupNotification = "Necesitamos Permisos para enviarle Notificaciones de las Propiedades y de las citas para mantenerle infomado";
+NSCalendarsUsageDescription = "Necesitamos acceder al Calendario para Agendar citas y recordarle de ellas ";
+NSLocationAlwaysAndWhenInUseUs = "Necesitamos Acceder  a su ubicacion mientras usa la app para ubicar las propiedades que se den de alta";
