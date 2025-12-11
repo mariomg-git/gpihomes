@@ -974,24 +974,8 @@ class _BookNowWidgetState extends State<BookNowWidget>
                               ),
                               tripsRecordReference);
 
-                          context.goNamed(
-                            'tripDetails',
-                            queryParameters: {
-                              'propertyRef': serializeParam(
-                                widget.propertyDetails,
-                                ParamType.Document,
-                              ),
-                              'tripRef': serializeParam(
-                                _model.newTrip,
-                                ParamType.Document,
-                              ),
-                            }.withoutNulls,
-                            extra: <String, dynamic>{
-                              'propertyRef': widget.propertyDetails,
-                              'tripRef': _model.newTrip,
-                            },
-                          );
-
+                          if (!mounted) return;
+                          
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -1012,6 +996,25 @@ class _BookNowWidgetState extends State<BookNowWidget>
                           );
                           FFAppState().fInicioContrato = null;
                           safeSetState(() {});
+
+                          if (!mounted) return;
+                          context.goNamed(
+                            'tripDetails',
+                            queryParameters: {
+                              'propertyRef': serializeParam(
+                                widget.propertyDetails,
+                                ParamType.Document,
+                              ),
+                              'tripRef': serializeParam(
+                                _model.newTrip,
+                                ParamType.Document,
+                              ),
+                            }.withoutNulls,
+                            extra: <String, dynamic>{
+                              'propertyRef': widget.propertyDetails,
+                              'tripRef': _model.newTrip,
+                            },
+                          );
 
                           safeSetState(() {});
                         },

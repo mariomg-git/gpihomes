@@ -202,15 +202,15 @@ class _HomePageMAINWidgetState extends State<HomePageMAINWidget> {
                                     .secondaryBackground,
                                 boxShadow: const [
                                   BoxShadow(
-                                    blurRadius: 4.0,
-                                    color: Color(0x32000000),
+                                    blurRadius: 8.0,
+                                    color: Color(0x1A000000),
                                     offset: Offset(
                                       0.0,
                                       2.0,
                                     ),
                                   )
                                 ],
-                                borderRadius: BorderRadius.circular(20.0),
+                                borderRadius: BorderRadius.circular(12.0),
                               ),
                               child: InkWell(
                                 splashColor: Colors.transparent,
@@ -259,6 +259,26 @@ class _HomePageMAINWidgetState extends State<HomePageMAINWidget> {
                                           width: double.infinity,
                                           height: 190.0,
                                           fit: BoxFit.cover,
+                                          placeholder: (context, url) => Container(
+                                            color: FlutterFlowTheme.of(context).accent1,
+                                            child: Center(
+                                              child: Icon(
+                                                Icons.home_outlined,
+                                                size: 48.0,
+                                                color: FlutterFlowTheme.of(context).accent3,
+                                              ),
+                                            ),
+                                          ),
+                                          errorWidget: (context, url, error) => Container(
+                                            color: FlutterFlowTheme.of(context).accent1,
+                                            child: Center(
+                                              child: Icon(
+                                                Icons.broken_image_outlined,
+                                                size: 48.0,
+                                                color: FlutterFlowTheme.of(context).error,
+                                              ),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ),

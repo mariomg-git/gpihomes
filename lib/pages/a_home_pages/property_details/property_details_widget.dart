@@ -252,7 +252,10 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                               children: [
                                 Container(
                                   width: MediaQuery.sizeOf(context).width * 0.9,
-                                  height: 320.0,
+                                  constraints: BoxConstraints(
+                                    minHeight: 280.0,
+                                    maxHeight: MediaQuery.sizeOf(context).height * 0.4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFDBE2E7),
                                     borderRadius: BorderRadius.circular(16.0),
@@ -321,6 +324,26 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                                 width: double.infinity,
                                                 height: double.infinity,
                                                 fit: BoxFit.cover,
+                                                placeholder: (context, url) => Container(
+                                                  color: FlutterFlowTheme.of(context).accent1,
+                                                  child: Center(
+                                                    child: CircularProgressIndicator(
+                                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                                        FlutterFlowTheme.of(context).primary,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                errorWidget: (context, url, error) => Container(
+                                                  color: FlutterFlowTheme.of(context).accent1,
+                                                  child: Center(
+                                                    child: Icon(
+                                                      Icons.broken_image_outlined,
+                                                      size: 64.0,
+                                                      color: FlutterFlowTheme.of(context).error,
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),

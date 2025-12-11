@@ -5,7 +5,9 @@ import 'package:google_fonts/google_fonts.dart';
 
 abstract class FlutterFlowTheme {
   static FlutterFlowTheme of(BuildContext context) {
-    return LightModeTheme();
+    return Theme.of(context).brightness == Brightness.dark
+        ? DarkModeTheme()
+        : LightModeTheme();
   }
 
   @Deprecated('Use primary instead')
@@ -114,33 +116,70 @@ class LightModeTheme extends FlutterFlowTheme {
   @Deprecated('Use tertiary instead')
   Color get tertiaryColor => tertiary;
 
-  late Color primary = const Color(0xFF4B39EF);
-  late Color secondary = const Color(0xFFEE8B60);
-  late Color tertiary = const Color(0xFFFFFFFF);
-  late Color alternate = const Color(0xFF39D2C0);
-  late Color primaryText = const Color(0xFFFFFFFF);
-  late Color secondaryText = const Color(0xFFF0E8E8);
-  late Color primaryBackground = const Color(0xFF1E2429);
-  late Color secondaryBackground = const Color(0xFF14181B);
-  late Color accent1 = const Color(0xFFEEEEEE);
-  late Color accent2 = const Color(0xFFE0E0E0);
-  late Color accent3 = const Color(0xFF8E8E92);
-  late Color accent4 = const Color(0xFF8E8E92);
-  late Color success = const Color(0xFF04A24C);
-  late Color warning = const Color(0xFFFCDC0C);
-  late Color error = const Color(0xFFE21C3D);
-  late Color info = const Color(0xFF1C4494);
+  late Color primary = const Color(0xFF1E3A8A);        // Azul profundo elegante
+  late Color secondary = const Color(0xFFF59E0B);      // Dorado cálido
+  late Color tertiary = const Color(0xFF10B981);       // Verde esmeralda
+  late Color alternate = const Color(0xFF06B6D4);      // Cyan moderno
+  late Color primaryText = const Color(0xFF1F2937);    // Gris oscuro para texto
+  late Color secondaryText = const Color(0xFF6B7280);  // Gris medio
+  late Color primaryBackground = const Color(0xFFFAFAFA);  // Blanco cálido
+  late Color secondaryBackground = const Color(0xFFFFFFFF); // Blanco puro
+  late Color accent1 = const Color(0xFFF3F4F6);        // Gris muy claro
+  late Color accent2 = const Color(0xFFE5E7EB);        // Gris claro
+  late Color accent3 = const Color(0xFFD1D5DB);        // Gris medio claro
+  late Color accent4 = const Color(0xFF9CA3AF);        // Gris medio
+  late Color success = const Color(0xFF10B981);        // Verde éxito
+  late Color warning = const Color(0xFFF59E0B);        // Ámbar advertencia
+  late Color error = const Color(0xFFEF4444);          // Rojo error
+  late Color info = const Color(0xFF3B82F6);           // Azul información
 
-  late Color cultured = const Color(0xFFF1F4F8);
-  late Color redApple = const Color(0xFFFC4253);
-  late Color celadon = const Color(0xFF96E6B3);
-  late Color turquoise = const Color(0xFF39D2C0);
-  late Color gunmetal = const Color(0xFF262D34);
-  late Color grayIcon = const Color(0xFF95A1AC);
-  late Color darkText = const Color(0xFFFFFFFF);
-  late Color dark600 = const Color(0xFF14181B);
-  late Color gray600 = const Color(0xFF8E8E92);
-  late Color lineGray = const Color(0xFF717179);
+  late Color cultured = const Color(0xFFF9FAFB);
+  late Color redApple = const Color(0xFFEF4444);
+  late Color celadon = const Color(0xFF86EFAC);
+  late Color turquoise = const Color(0xFF06B6D4);
+  late Color gunmetal = const Color(0xFF374151);
+  late Color grayIcon = const Color(0xFF9CA3AF);
+  late Color darkText = const Color(0xFF111827);
+  late Color dark600 = const Color(0xFF1F2937);
+  late Color gray600 = const Color(0xFF6B7280);
+  late Color lineGray = const Color(0xFFD1D5DB);
+}
+
+class DarkModeTheme extends FlutterFlowTheme {
+  @Deprecated('Use primary instead')
+  Color get primaryColor => primary;
+  @Deprecated('Use secondary instead')
+  Color get secondaryColor => secondary;
+  @Deprecated('Use tertiary instead')
+  Color get tertiaryColor => tertiary;
+
+  late Color primary = const Color(0xFF3B82F6);        // Azul brillante
+  late Color secondary = const Color(0xFFFBBF24);      // Ámbar cálido
+  late Color tertiary = const Color(0xFF34D399);       // Verde menta
+  late Color alternate = const Color(0xFF22D3EE);      // Cyan brillante
+  late Color primaryText = const Color(0xFFF9FAFB);    // Blanco cálido
+  late Color secondaryText = const Color(0xFFD1D5DB);  // Gris claro
+  late Color primaryBackground = const Color(0xFF111827);  // Azul muy oscuro
+  late Color secondaryBackground = const Color(0xFF1F2937); // Azul oscuro
+  late Color accent1 = const Color(0xFF374151);        // Gris oscuro
+  late Color accent2 = const Color(0xFF4B5563);        // Gris medio oscuro
+  late Color accent3 = const Color(0xFF6B7280);        // Gris medio
+  late Color accent4 = const Color(0xFF9CA3AF);        // Gris claro
+  late Color success = const Color(0xFF34D399);        // Verde éxito
+  late Color warning = const Color(0xFFFBBF24);        // Ámbar advertencia
+  late Color error = const Color(0xFFF87171);          // Rojo suave
+  late Color info = const Color(0xFF60A5FA);           // Azul claro
+
+  late Color cultured = const Color(0xFF1F2937);
+  late Color redApple = const Color(0xFFF87171);
+  late Color celadon = const Color(0xFF6EE7B7);
+  late Color turquoise = const Color(0xFF22D3EE);
+  late Color gunmetal = const Color(0xFF9CA3AF);
+  late Color grayIcon = const Color(0xFF6B7280);
+  late Color darkText = const Color(0xFFF9FAFB);
+  late Color dark600 = const Color(0xFF374151);
+  late Color gray600 = const Color(0xFF9CA3AF);
+  late Color lineGray = const Color(0xFF4B5563);
 }
 
 abstract class Typography {
@@ -181,110 +220,110 @@ class ThemeTypography extends Typography {
 
   final FlutterFlowTheme theme;
 
-  String get displayLargeFamily => 'Poiret One';
+  String get displayLargeFamily => 'Playfair Display';
   TextStyle get displayLarge => GoogleFonts.getFont(
-        'Poiret One',
+        'Playfair Display',
         color: theme.primaryText,
-        fontWeight: FontWeight.normal,
-        fontSize: 57.0,
+        fontWeight: FontWeight.bold,
+        fontSize: 48.0,
       );
-  String get displayMediumFamily => 'Poiret One';
+  String get displayMediumFamily => 'Playfair Display';
   TextStyle get displayMedium => GoogleFonts.getFont(
-        'Poiret One',
+        'Playfair Display',
         color: theme.primaryText,
-        fontWeight: FontWeight.normal,
-        fontSize: 45.0,
+        fontWeight: FontWeight.bold,
+        fontSize: 36.0,
       );
-  String get displaySmallFamily => 'Poiret One';
+  String get displaySmallFamily => 'Playfair Display';
   TextStyle get displaySmall => GoogleFonts.getFont(
-        'Poiret One',
+        'Playfair Display',
+        color: theme.primaryText,
+        fontWeight: FontWeight.w600,
+        fontSize: 28.0,
+      );
+  String get headlineLargeFamily => 'Playfair Display';
+  TextStyle get headlineLarge => GoogleFonts.getFont(
+        'Playfair Display',
+        color: theme.primaryText,
+        fontWeight: FontWeight.w600,
+        fontSize: 32.0,
+      );
+  String get headlineMediumFamily => 'Playfair Display';
+  TextStyle get headlineMedium => GoogleFonts.getFont(
+        'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
         fontSize: 24.0,
       );
-  String get headlineLargeFamily => 'Poiret One';
-  TextStyle get headlineLarge => GoogleFonts.getFont(
-        'Poiret One',
-        color: theme.primaryText,
-        fontWeight: FontWeight.w500,
-        fontSize: 32.0,
-      );
-  String get headlineMediumFamily => 'Poiret One';
-  TextStyle get headlineMedium => GoogleFonts.getFont(
-        'Poiret One',
+  String get headlineSmallFamily => 'Playfair Display';
+  TextStyle get headlineSmall => GoogleFonts.getFont(
+        'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
-        fontSize: 22.0,
-      );
-  String get headlineSmallFamily => 'Poiret One';
-  TextStyle get headlineSmall => GoogleFonts.getFont(
-        'Poiret One',
-        color: theme.primaryText,
-        fontWeight: FontWeight.bold,
         fontSize: 20.0,
       );
-  String get titleLargeFamily => 'Poiret One';
+  String get titleLargeFamily => 'Inter';
   TextStyle get titleLarge => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.primaryText,
-        fontWeight: FontWeight.bold,
-        fontSize: 22.0,
+        fontWeight: FontWeight.w600,
+        fontSize: 20.0,
       );
-  String get titleMediumFamily => 'Poiret One';
+  String get titleMediumFamily => 'Inter';
   TextStyle get titleMedium => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.secondaryText,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w600,
         fontSize: 18.0,
       );
-  String get titleSmallFamily => 'Poiret One';
+  String get titleSmallFamily => 'Inter';
   TextStyle get titleSmall => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.primaryText,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w600,
         fontSize: 16.0,
       );
-  String get labelLargeFamily => 'Poiret One';
+  String get labelLargeFamily => 'Inter';
   TextStyle get labelLarge => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.primaryText,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w500,
         fontSize: 14.0,
       );
-  String get labelMediumFamily => 'Poiret One';
+  String get labelMediumFamily => 'Inter';
   TextStyle get labelMedium => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.primaryText,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w500,
         fontSize: 12.0,
       );
-  String get labelSmallFamily => 'Poiret One';
+  String get labelSmallFamily => 'Inter';
   TextStyle get labelSmall => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.primaryText,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.w500,
         fontSize: 11.0,
       );
-  String get bodyLargeFamily => 'Poiret One';
+  String get bodyLargeFamily => 'Inter';
   TextStyle get bodyLarge => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.primaryText,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.normal,
         fontSize: 16.0,
       );
-  String get bodyMediumFamily => 'Poiret One';
+  String get bodyMediumFamily => 'Inter';
   TextStyle get bodyMedium => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.secondaryText,
-        fontWeight: FontWeight.bold,
+        fontWeight: FontWeight.normal,
         fontSize: 14.0,
       );
-  String get bodySmallFamily => 'Poiret One';
+  String get bodySmallFamily => 'Inter';
   TextStyle get bodySmall => GoogleFonts.getFont(
-        'Poiret One',
+        'Inter',
         color: theme.primaryText,
-        fontWeight: FontWeight.bold,
-        fontSize: 14.0,
+        fontWeight: FontWeight.normal,
+        fontSize: 13.0,
       );
 }
 

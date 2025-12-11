@@ -44,7 +44,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  Locale? _locale = FFLocalizations.getStoredLocale();
+  Locale? _locale;
 
   ThemeMode _themeMode = ThemeMode.system;
 
@@ -59,6 +59,9 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+
+    // Inicializar locale con el guardado o detectar del sistema
+    _locale = FFLocalizations.getStoredLocale();
 
     _appStateNotifier = AppStateNotifier.instance;
     _router = createRouter(_appStateNotifier);
@@ -106,6 +109,23 @@ class _MyAppState extends State<MyApp> {
         Locale('en'),
         Locale('es'),
       ],
+      localeResolutionCallback: (locale, supportedLocales) {
+        // Si ya hay un locale guardado, úsalo
+        if (_locale != null) return _locale;
+        
+        // Detectar el idioma del navegador/sistema
+        if (locale != null) {
+          // Verificar si el idioma del sistema está soportado
+          for (var supportedLocale in supportedLocales) {
+            if (supportedLocale.languageCode == locale.languageCode) {
+              return supportedLocale;
+            }
+          }
+        }
+        
+        // Por defecto, usar español
+        return const Locale('es');
+      },
       theme: ThemeData(
         brightness: Brightness.light,
         useMaterial3: false,
@@ -163,16 +183,16 @@ class _NavBarPageState extends State<NavBarPage> {
           _currentPage = null;
           _currentPageName = tabs.keys.toList()[i];
         }),
-        backgroundColor: FlutterFlowTheme.of(context).primary,
-        selectedItemColor: FlutterFlowTheme.of(context).primaryText,
+        backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+        selectedItemColor: FlutterFlowTheme.of(context).primary,
         unselectedItemColor: FlutterFlowTheme.of(context).grayIcon,
-        selectedBackgroundColor: const Color(0x00000000),
-        borderRadius: 8.0,
-        itemBorderRadius: 8.0,
-        margin: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 5.0),
-        padding: const EdgeInsetsDirectional.fromSTEB(0.0, 0.0, 0.0, 0.0),
+        selectedBackgroundColor: FlutterFlowTheme.of(context).accent1,
+        borderRadius: 16.0,
+        itemBorderRadius: 12.0,
+        margin: const EdgeInsetsDirectional.fromSTEB(8.0, 0.0, 8.0, 8.0),
+        padding: const EdgeInsetsDirectional.fromSTEB(8.0, 8.0, 8.0, 8.0),
         width: double.infinity,
-        elevation: 0.0,
+        elevation: 8.0,
         items: [
           FloatingNavbarItem(
             customWidget: Column(
@@ -181,9 +201,9 @@ class _NavBarPageState extends State<NavBarPage> {
                 Icon(
                   currentIndex == 0 ? Icons.home_rounded : Icons.home_outlined,
                   color: currentIndex == 0
-                      ? FlutterFlowTheme.of(context).primaryText
+                      ? FlutterFlowTheme.of(context).primary
                       : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 0 ? 24.0 : 24.0,
+                  size: currentIndex == 0 ? 26.0 : 24.0,
                 ),
                 Text(
                   FFLocalizations.of(context).getText(
@@ -192,9 +212,10 @@ class _NavBarPageState extends State<NavBarPage> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: currentIndex == 0
-                        ? FlutterFlowTheme.of(context).primaryText
+                        ? FlutterFlowTheme.of(context).primary
                         : FlutterFlowTheme.of(context).grayIcon,
                     fontSize: 11.0,
+                    fontWeight: currentIndex == 0 ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ],
@@ -207,9 +228,9 @@ class _NavBarPageState extends State<NavBarPage> {
                 Icon(
                   currentIndex == 1 ? Icons.add_home_work : Icons.add_home_work,
                   color: currentIndex == 1
-                      ? FlutterFlowTheme.of(context).primaryText
+                      ? FlutterFlowTheme.of(context).primary
                       : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 1 ? 24.0 : 24.0,
+                  size: currentIndex == 1 ? 26.0 : 24.0,
                 ),
                 Text(
                   FFLocalizations.of(context).getText(
@@ -218,9 +239,10 @@ class _NavBarPageState extends State<NavBarPage> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: currentIndex == 1
-                        ? FlutterFlowTheme.of(context).primaryText
+                        ? FlutterFlowTheme.of(context).primary
                         : FlutterFlowTheme.of(context).grayIcon,
                     fontSize: 11.0,
+                    fontWeight: currentIndex == 1 ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ],
@@ -235,9 +257,9 @@ class _NavBarPageState extends State<NavBarPage> {
                       ? Icons.publish_rounded
                       : Icons.publish_outlined,
                   color: currentIndex == 2
-                      ? FlutterFlowTheme.of(context).primaryText
+                      ? FlutterFlowTheme.of(context).primary
                       : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 2 ? 24.0 : 24.0,
+                  size: currentIndex == 2 ? 26.0 : 24.0,
                 ),
                 Text(
                   FFLocalizations.of(context).getText(
@@ -246,9 +268,10 @@ class _NavBarPageState extends State<NavBarPage> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: currentIndex == 2
-                        ? FlutterFlowTheme.of(context).primaryText
+                        ? FlutterFlowTheme.of(context).primary
                         : FlutterFlowTheme.of(context).grayIcon,
                     fontSize: 11.0,
+                    fontWeight: currentIndex == 2 ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ],
@@ -263,9 +286,9 @@ class _NavBarPageState extends State<NavBarPage> {
                       ? Icons.account_circle
                       : Icons.account_circle_outlined,
                   color: currentIndex == 3
-                      ? FlutterFlowTheme.of(context).primaryText
+                      ? FlutterFlowTheme.of(context).primary
                       : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 3 ? 24.0 : 24.0,
+                  size: currentIndex == 3 ? 26.0 : 24.0,
                 ),
                 Text(
                   FFLocalizations.of(context).getText(
@@ -274,9 +297,10 @@ class _NavBarPageState extends State<NavBarPage> {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: currentIndex == 3
-                        ? FlutterFlowTheme.of(context).primaryText
+                        ? FlutterFlowTheme.of(context).primary
                         : FlutterFlowTheme.of(context).grayIcon,
                     fontSize: 11.0,
+                    fontWeight: currentIndex == 3 ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
               ],
