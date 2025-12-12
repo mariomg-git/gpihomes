@@ -5,6 +5,7 @@ import '/backend/backend.dart';
 import '/auth/firebase_auth/auth_util.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart' as firestore;
 import 'home_page_publicar_model.dart';
 export 'home_page_publicar_model.dart';
 
@@ -183,12 +184,35 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
                             _isCreatingProperties = true;
                           });
                           
-                          print('🧪 DEBUG: Iniciando creación de propiedades de prueba...');
-                          print('🔐 DEBUG: Usuario actual: ${currentUserUid}');
-                          print('📍 DEBUG: User Reference: ${currentUserReference?.path}');
-                          
                           try {
-                            // Mostrar indicador de carga
+                            if (!mounted) return;
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '🗑️ Eliminando propiedades antiguas...',
+                                  style: TextStyle(
+                                    color: FlutterFlowTheme.of(context).primaryText,
+                                  ),
+                                ),
+                                duration: const Duration(milliseconds: 2000),
+                                backgroundColor: FlutterFlowTheme.of(context).warning,
+                              ),
+                            );
+                            
+                            // Eliminar propiedades antiguas
+                            final oldProperties = await PropertiesRecord.collection
+                                .where('idUser', isEqualTo: currentUserUid)
+                                .get();
+                            
+                            print('🗑️ Eliminando ${oldProperties.docs.length} propiedades antiguas...');
+                            
+                            for (var doc in oldProperties.docs) {
+                              await doc.reference.delete();
+                              print('  ✅ Eliminada: ${doc.id}');
+                            }
+                            
+                            print('🧪 DEBUG: Iniciando creación de propiedades de prueba...');
+                            
                             if (!mounted) return;
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -211,7 +235,7 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  '✅ 10 propiedades de prueba creadas exitosamente',
+                                  '✅ 10 propiedades nuevas creadas exitosamente',
                                   style: TextStyle(
                                     color: FlutterFlowTheme.of(context).primaryText,
                                   ),
@@ -246,8 +270,8 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
                           }
                         },
                         text: _isCreatingProperties 
-                            ? '⏳ Creando...' 
-                            : '🧪 Generar Propiedades Test',
+                            ? '⏳ Procesando...' 
+                            : '🔄 Limpiar y Crear Propiedades Test',
                         options: FFButtonOptions(
                           width: 240.0,
                           height: 50.0,
@@ -272,6 +296,36 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
                           borderRadius: BorderRadius.circular(25.0),
                         ),
                       ),
+                      const SizedBox(height: 20.0),
+                      FFButtonWidget(
+                        onPressed: () async {
+                          await _checkPropertiesWithoutPrice();
+                        },
+                        text: '🔍 Identificar Propiedades sin Price',
+                        options: FFButtonOptions(
+                          width: 240.0,
+                          height: 50.0,
+                          padding: const EdgeInsetsDirectional.fromSTEB(
+                              0.0, 0.0, 0.0, 0.0),
+                          iconPadding: const EdgeInsetsDirectional.fromSTEB(
+                              0.0, 0.0, 0.0, 0.0),
+                          color: FlutterFlowTheme.of(context).warning,
+                          textStyle:
+                              FlutterFlowTheme.of(context).titleSmall.override(
+                                    fontFamily: 'Inter',
+                                    color: Colors.white,
+                                    fontSize: 16.0,
+                                    letterSpacing: 0.0,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                          elevation: 2.0,
+                          borderSide: const BorderSide(
+                            color: Colors.transparent,
+                            width: 1.0,
+                          ),
+                          borderRadius: BorderRadius.circular(25.0),
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -279,6 +333,140 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
             ),
           ),
         ));
+  }
+
+  Future<void> _checkPropertiesWithoutPrice() async {
+    print('🔍 DEBUG: Verificando propiedades sin campo price...');
+    
+    try {
+      final snapshot = await firestore.FirebaseFirestore.instance
+          .collection('properties')
+          .get();
+      
+      print('📊 Total de propiedades en la base de datos: ${snapshot.docs.length}');
+      
+      List<Map<String, dynamic>> propertiesWithoutPrice = [];
+      List<Map<String, dynamic>> propertiesWithoutCoords = [];
+      List<Map<String, dynamic>> validProperties = [];
+      
+      for (var doc in snapshot.docs) {
+        final data = doc.data();
+        final id = doc.id;
+        
+        bool hasPrice = data.containsKey('price');
+        bool hasCoords = data.containsKey('coordenadas') || data.containsKey('propertyCoords');
+        
+        Map<String, dynamic> propInfo = {
+          'id': id,
+          'propertyName': data['propertyName'] ?? 'Sin nombre',
+          'tipoPropiedad': data['tipoPropiedad'] ?? 'No especificado',
+          'status': data['status'] ?? 'No especificado',
+        };
+        
+        if (!hasPrice) {
+          propertiesWithoutPrice.add(propInfo);
+        }
+        
+        if (!hasCoords) {
+          propertiesWithoutCoords.add(propInfo);
+        }
+        
+        if (hasPrice && hasCoords) {
+          propInfo['price'] = data['price'];
+          validProperties.add(propInfo);
+        }
+      }
+      
+      print('\n========================================');
+      print('📋 REPORTE DE PROPIEDADES');
+      print('========================================\n');
+      
+      print('✅ Propiedades VÁLIDAS (con price y coordenadas): ${validProperties.length}');
+      for (var prop in validProperties) {
+        print('  - ${prop['propertyName']} (${prop['tipoPropiedad']})');
+        print('    ID: ${prop['id']}');
+        print('    Precio: \$${prop['price']}');
+        print('    Status: ${prop['status']}');
+      }
+      
+      print('\n⚠️ Propiedades SIN PRICE: ${propertiesWithoutPrice.length}');
+      for (var prop in propertiesWithoutPrice) {
+        print('  - ${prop['propertyName']} (${prop['tipoPropiedad']})');
+        print('    ID: ${prop['id']}');
+        print('    Status: ${prop['status']}');
+      }
+      
+      print('\n⚠️ Propiedades SIN COORDENADAS: ${propertiesWithoutCoords.length}');
+      for (var prop in propertiesWithoutCoords) {
+        print('  - ${prop['propertyName']} (${prop['tipoPropiedad']})');
+        print('    ID: ${prop['id']}');
+        print('    Status: ${prop['status']}');
+      }
+      
+      print('\n========================================');
+      print('RESUMEN:');
+      print('  Total: ${snapshot.docs.length}');
+      print('  Válidas: ${validProperties.length}');
+      print('  Sin price: ${propertiesWithoutPrice.length}');
+      print('  Sin coordenadas: ${propertiesWithoutCoords.length}');
+      print('========================================\n');
+      
+      // Mostrar diálogo con resultados
+      if (mounted) {
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: const Text('📊 Reporte de Propiedades'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total: ${snapshot.docs.length}'),
+                    const SizedBox(height: 10),
+                    Text('✅ Válidas: ${validProperties.length}', 
+                         style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    Text('⚠️ Sin price: ${propertiesWithoutPrice.length}', 
+                         style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 5),
+                    Text('⚠️ Sin coordenadas: ${propertiesWithoutCoords.length}', 
+                         style: const TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 15),
+                    if (propertiesWithoutPrice.isNotEmpty) ...[
+                      const Text('Propiedades sin price:', 
+                                 style: TextStyle(fontWeight: FontWeight.bold)),
+                      ...propertiesWithoutPrice.map((prop) => 
+                        Padding(
+                          padding: const EdgeInsets.only(left: 10, top: 5),
+                          child: Text('• ${prop['propertyName']}\n  ID: ${prop['id']}',
+                                    style: const TextStyle(fontSize: 12)),
+                        )
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            );
+          },
+        );
+      }
+      
+    } catch (e) {
+      print('❌ Error al verificar propiedades: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _createTestProperties() async {
@@ -410,9 +598,13 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
         print('\n📍 DEBUG: Creando propiedad ${i + 1}/10...');
         
         final isInTijuana = i < 5;
+        final isRenta = i < 5; // Primeras 5 en renta, últimas 5 en venta
         final locationData = isInTijuana ? tijuanaData[i] : cdmxData[i - 5];
         
         print('  - Ubicación: ${locationData['city']} - ${locationData['neighborhood']}');
+        print('  - Tipo: ${isRenta ? 'Renta' : 'Venta'}');
+        
+        final coords = locationData['coords'] as LatLng;
         
         final propertyData = {
           'propertyName': propertyNames[i],
@@ -424,13 +616,14 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
           'propertyCity': locationData['city'],
           'propertyState': locationData['state'],
           'propertyZipCode': locationData['zipCode'],
-          'propertyCoords': locationData['coords'],
+          'propertyCoords': firestore.GeoPoint(coords.latitude, coords.longitude), // Convertir a GeoPoint de Firestore
           'price': (random.nextInt(20) + 5) * 100000.0, // Entre $500k y $2.5M
           'roomsPropiedad': random.nextInt(4) + 2, // Entre 2 y 5 habitaciones
           'bathsPropiedad': random.nextInt(3) + 1, // Entre 1 y 3 baños
-          'tipoPropiedad': propertyTypes[random.nextInt(propertyTypes.length)],
+          'tipoPropiedad': isRenta ? 'Renta' : 'Venta', // 5 Renta, 5 Venta
+          'tipoPropiedadInmueble': propertyTypes[random.nextInt(propertyTypes.length)], // Casa, Departamento, etc.
           'tipoVendedor': sellerTypes[random.nextInt(sellerTypes.length)],
-          'status': 'Disponible',
+          'status': 'Revisado', // CORREGIDO: Cambiar a 'Revisado' para que aparezca en el filtro
           'isLive': true,
           'isDraft': false,
           'userRef': currentUserReference,
@@ -440,6 +633,12 @@ class _HomePagePublicarWidgetState extends State<HomePagePublicarWidget> {
           'telPropiedad': 6641234567,
           'ratingSummary': (random.nextInt(20) + 35) / 10.0, // Entre 3.5 y 5.0
           'minNights': random.nextInt(3) + 1,
+          'coordenadas': [
+            {
+              'latitud': coords.latitude,
+              'longitud': coords.longitude,
+            }
+          ],
         };
 
         print('  - Nombre: ${propertyData['propertyName']}');

@@ -24,7 +24,7 @@ import 'package:gpi_homes/pages/a_home_pages/property_details/property_details_w
 import 'package:gpi_homes/flutter_flow/lat_lng.dart' as ff;
 import 'package:flutter/foundation.dart';
 
-const String googleApiKey = 'AIzaSyCxQth-MdaAZiriOmOTinAj5362UUWNN9g';
+const String googleApiKey = 'AIzaSyDIxSvBsrUfqBKuIKvvG9_Fl0GE6lEJvrQ';
 
 class MapPropiedades extends StatefulWidget {
   const MapPropiedades({
@@ -54,11 +54,44 @@ class _MapPropiedadesState extends State<MapPropiedades> {
   final Completer<map.GoogleMapController> _controller =
       Completer<map.GoogleMapController>();
   final TextEditingController _searchController = TextEditingController();
+  
+  // Variable para almacenar la propiedad seleccionada
+  PropertiesRecord? _selectedProperty;
+  map.LatLng? _selectedPosition;
+  
+  // Índice de la foto actual en el slider
+  int _currentPhotoIndex = 0;
 
   @override
   void initState() {
     super.initState();
     _checkLocationPermission();
+  }
+  
+  @override
+  void didUpdateWidget(MapPropiedades oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Actualizar círculo cuando cambia el radio
+    updateCircle();
+  }
+  
+  void updateCircle() {
+    if (FFAppState().ubicacionMapaPrinc != null) {
+      setState(() {
+        _circles.clear();
+        _circles.add(map.Circle(
+          circleId: map.CircleId('search_area'),
+          center: map.LatLng(
+            FFAppState().ubicacionMapaPrinc!.latitude,
+            FFAppState().ubicacionMapaPrinc!.longitude,
+          ),
+          radius: FFAppState().radioCircle * 1000, // Radio en metros
+          fillColor: Colors.blue.withOpacity(0.2),
+          strokeColor: Colors.blue,
+          strokeWidth: 2,
+        ));
+      });
+    }
   }
 
   @override
@@ -127,6 +160,17 @@ class _MapPropiedadesState extends State<MapPropiedades> {
                   myLocationButtonEnabled: true,
                   myLocationEnabled: true,
                 ),
+                // Card flotante personalizado con imagen
+                if (_selectedProperty != null)
+                  Positioned(
+                    bottom: 16,
+                    left: 16,
+                    right: 16,
+                    child: IgnorePointer(
+                      ignoring: false,
+                      child: _buildPropertyCard(_selectedProperty!),
+                    ),
+                  ),
               ],
             ),
           ),
@@ -137,7 +181,7 @@ class _MapPropiedadesState extends State<MapPropiedades> {
 
   void _handleSearchTap() async {
     setState(() {
-      _circles.clear();
+      // No limpiar círculos aquí, se actualizarán en _goToPlace
       print('july');
     });
     final place = await showSearch<Place?>(
@@ -167,21 +211,27 @@ class _MapPropiedadesState extends State<MapPropiedades> {
       FFAppState().ubicacionMapaPrinc = ffLatLng;
       widget.actionPaarama();
 
-      // Añadir círculo para resaltar el área
+      // Limpiar círculos anteriores y añadir nuevo círculo
+      _circles.clear();
       _circles.add(map.Circle(
-        circleId: map.CircleId(place.placeId),
+        circleId: map.CircleId('search_area'),
         center: place.latLng,
         radius: FFAppState().radioCircle * 1000, // Radio en metros
-        fillColor: Colors.blue.withOpacity(0.5),
+        fillColor: Colors.blue.withOpacity(0.2),
         strokeColor: Colors.blue,
-        strokeWidth: 1,
+        strokeWidth: 2,
       ));
       print('july: ' + place.placeId);
     });
   }
 
   void _handleTap(map.LatLng tappedPoint) async {
-    // Implementación de evento para manejo de taps en el mapa
+    // Cerrar el card cuando se hace clic fuera de un marker
+    setState(() {
+      _selectedProperty = null;
+      _selectedPosition = null;
+      _currentPhotoIndex = 0;
+    });
   }
 
   void _loadMarkers() async {
@@ -193,6 +243,12 @@ class _MapPropiedadesState extends State<MapPropiedades> {
 
       for (var doc in querySnapshot.docs) {
         try {
+          // Skip documents without required fields
+          final data = doc.data() as Map<String, dynamic>?;
+          if (data == null || !data.containsKey('price') || !data.containsKey('coordenadas')) {
+            continue;
+          }
+          
           var propertiesRecord = PropertiesRecord.fromSnapshot(doc);
           var coordenadas = doc['coordenadas'] as List<dynamic>;
           var priceK = doc['price'] / 1000;
@@ -209,13 +265,13 @@ class _MapPropiedadesState extends State<MapPropiedades> {
                 markerId:
                     map.MarkerId('${coord['latitud']}_${coord['longitud']}'),
                 position: map.LatLng(coord['latitud'], coord['longitud']),
-                infoWindow: map.InfoWindow(
-                  title: '${doc['propertyName']}',
-                  snippet: formattedPrice,
-                  onTap: () {
-                    _onInfoWindowTapped(propertiesRecord);
-                  },
-                ),
+                onTap: () {
+                  setState(() {
+                    _selectedProperty = propertiesRecord;
+                    _selectedPosition = map.LatLng(coord['latitud'], coord['longitud']);
+                    _currentPhotoIndex = 0;
+                  });
+                },
                 icon: markerIcon,
               );
               newMarkers.add(marker);
@@ -251,8 +307,24 @@ class _MapPropiedadesState extends State<MapPropiedades> {
 
   Future<void> _getInitialLocation() async {
     try {
+      print('📍 Solicitando ubicación actual...');
+      
+      // Configurar timeout más largo para web
+      final timeoutDuration = kIsWeb ? Duration(seconds: 10) : Duration(seconds: 5);
+      
       geo.Position position = await geo.Geolocator.getCurrentPosition(
-          desiredAccuracy: geo.LocationAccuracy.high);
+        desiredAccuracy: geo.LocationAccuracy.high,
+        timeLimit: timeoutDuration,
+      ).timeout(
+        timeoutDuration,
+        onTimeout: () {
+          print('⏱️ Timeout obteniendo ubicación');
+          throw TimeoutException('No se pudo obtener la ubicación en el tiempo esperado');
+        },
+      );
+      
+      print('✅ Ubicación obtenida: ${position.latitude}, ${position.longitude}');
+      
       setState(() {
         _initialLocation = map.LatLng(position.latitude, position.longitude);
         final ffLatLng = ff.LatLng(position.latitude, position.longitude);
@@ -262,8 +334,19 @@ class _MapPropiedadesState extends State<MapPropiedades> {
           markerId: map.MarkerId('current_location'),
           position: _initialLocation,
         );
-        //_markers.add(_currentLocationMarker);
+        
+        // Añadir círculo inicial con radio por defecto
+        _circles.clear();
+        _circles.add(map.Circle(
+          circleId: map.CircleId('search_area'),
+          center: _initialLocation,
+          radius: FFAppState().radioCircle * 1000,
+          fillColor: Colors.blue.withOpacity(0.2),
+          strokeColor: Colors.blue,
+          strokeWidth: 2,
+        ));
       });
+      
       final map.GoogleMapController controller = await _controller.future;
       controller.animateCamera(
         map.CameraUpdate.newCameraPosition(
@@ -274,24 +357,80 @@ class _MapPropiedadesState extends State<MapPropiedades> {
         ),
       );
     } catch (e) {
-      print('Error obteniendo la ubicación: $e');
+      print('❌ Error obteniendo la ubicación: $e');
+      print('💡 Usando ubicación por defecto (Tijuana)');
+      
+      // Establecer ubicación por defecto (Tijuana)
+      setState(() {
+        _initialLocation = map.LatLng(32.5149, -117.0382);
+        final ffLatLng = ff.LatLng(32.5149, -117.0382);
+        FFAppState().ubicacionMapaPrinc = ffLatLng;
+        
+        _circles.clear();
+        _circles.add(map.Circle(
+          circleId: map.CircleId('search_area'),
+          center: _initialLocation,
+          radius: FFAppState().radioCircle * 1000,
+          fillColor: Colors.blue.withOpacity(0.2),
+          strokeColor: Colors.blue,
+          strokeWidth: 2,
+        ));
+      });
     }
   }
 
   Future<void> _checkLocationPermission() async {
-    geo.LocationPermission permission = await geo.Geolocator.checkPermission();
-    if (permission == geo.LocationPermission.denied ||
-        permission == geo.LocationPermission.deniedForever) {
-      permission = await geo.Geolocator.requestPermission();
-      if (permission != geo.LocationPermission.whileInUse &&
-          permission != geo.LocationPermission.always) {
-        // Los permisos de ubicación están denegados
+    try {
+      print('🔍 Verificando permisos de ubicación...');
+      
+      // Verificar si el servicio de ubicación está habilitado
+      bool serviceEnabled = await geo.Geolocator.isLocationServiceEnabled();
+      print('📍 Servicio de ubicación habilitado: $serviceEnabled');
+      
+      if (!serviceEnabled) {
+        print('⚠️ Servicio de ubicación deshabilitado');
+        // En web, si el servicio está deshabilitado, intentar de todas formas
+        if (kIsWeb) {
+          print('🌐 Intentando obtener ubicación en web de todas formas...');
+        } else {
+          print('❌ Por favor habilita el servicio de ubicación');
+          return;
+        }
+      }
+      
+      geo.LocationPermission permission = await geo.Geolocator.checkPermission();
+      print('🔐 Permiso actual: $permission');
+      
+      if (permission == geo.LocationPermission.denied) {
+        print('⚠️ Permiso denegado, solicitando permiso...');
+        permission = await geo.Geolocator.requestPermission();
+        print('🔐 Nuevo permiso: $permission');
+        
+        if (permission == geo.LocationPermission.denied) {
+          print('❌ Permiso de ubicación denegado por el usuario');
+          // Mostrar ubicación por defecto
+          _loadMarkers();
+          return;
+        }
+      }
+      
+      if (permission == geo.LocationPermission.deniedForever) {
+        print('❌ Permiso de ubicación denegado permanentemente');
+        print('💡 El usuario debe habilitar manualmente en configuración del navegador');
+        // Mostrar ubicación por defecto
+        _loadMarkers();
         return;
       }
+      
+      // Permisos otorgados
+      print('✅ Permisos otorgados, obteniendo ubicación...');
+      _getInitialLocation();
+      _loadMarkers();
+    } catch (e) {
+      print('❌ Error al verificar permisos: $e');
+      // En caso de error, cargar markers con ubicación por defecto
+      _loadMarkers();
     }
-    // Permisos otorgados, obtener la ubicación inicial
-    _getInitialLocation();
-    _loadMarkers();
   }
 
   Future<map.BitmapDescriptor> _createCustomMarkerBitmap(String text) async {
@@ -357,6 +496,407 @@ class _MapPropiedadesState extends State<MapPropiedades> {
     final Uint8List bytes = byteData!.buffer.asUint8List();
 
     return map.BitmapDescriptor.fromBytes(bytes);
+  }
+
+  // Widget para mostrar el card flotante con la imagen de la propiedad
+  Widget _buildPropertyCard(PropertiesRecord property) {
+    final priceFormatted = NumberFormat.currency(locale: 'en_US', symbol: '\$')
+        .format(property.price);
+    
+    // Obtener lista de imágenes
+    List<String> images = [];
+    if (property.mainImage != null && property.mainImage!.isNotEmpty) {
+      images.add(property.mainImage!);
+    }
+    if (property.hasImages() && property.images.isNotEmpty) {
+      for (var imageStruct in property.images) {
+        if (imageStruct.imageUrl.isNotEmpty) {
+          images.add(imageStruct.imageUrl);
+        }
+      }
+    }
+    
+    // Si no hay imágenes, usar placeholder
+    if (images.isEmpty) {
+      images.add('');
+    }
+    
+    return Material(
+      color: Colors.transparent,
+      child: GestureDetector(
+        onTap: () {}, // Absorber taps para no pasar al mapa
+        child: Container(
+          constraints: BoxConstraints(maxWidth: 420),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.2),
+                blurRadius: 16,
+                offset: Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Slider de imágenes con controles
+              GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _onInfoWindowTapped(property),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  child: Stack(
+                  children: [
+                    // Imagen actual del slider
+                    Container(
+                      height: 180,
+                      width: double.infinity,
+                      child: images[_currentPhotoIndex].isNotEmpty
+                          ? Image.network(
+                              images[_currentPhotoIndex],
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) {
+                                return Container(
+                                  color: Color(0xFFE0E0E0),
+                                  child: Center(
+                                    child: Icon(
+                                      Icons.home_work_rounded,
+                                      size: 48,
+                                      color: Color(0xFF9E9E9E),
+                                    ),
+                                  ),
+                                );
+                              },
+                            )
+                          : Container(
+                              color: Color(0xFFE0E0E0),
+                              child: Center(
+                                child: Icon(
+                                  Icons.home_work_rounded,
+                                  size: 48,
+                                  color: Color(0xFF9E9E9E),
+                                ),
+                              ),
+                            ),
+                    ),
+                    // Gradient overlay
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 50,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.transparent,
+                              Colors.black.withOpacity(0.5),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Precio badge
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: Container(
+                        padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: Color(0xFF1E3A8A),
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.3),
+                              blurRadius: 6,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          priceFormatted,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Botón cerrar
+                    Positioned(
+                      top: 8,
+                      right: 8,
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setState(() {
+                            _selectedProperty = null;
+                            _selectedPosition = null;
+                            _currentPhotoIndex = 0;
+                          });
+                        },
+                        child: Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.close,
+                            size: 18,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Controles del slider (solo si hay más de una imagen)
+                    if (images.length > 1) ...[
+                      // Botón anterior
+                      if (_currentPhotoIndex > 0)
+                        Positioned(
+                          left: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 60,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                setState(() {
+                                  _currentPhotoIndex--;
+                                });
+                              },
+                              child: Center(
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.95),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.25),
+                                        blurRadius: 6,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.chevron_left,
+                                    size: 26,
+                                    color: Color(0xFF1F2937),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Botón siguiente
+                      if (_currentPhotoIndex < images.length - 1)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          bottom: 0,
+                          width: 60,
+                          child: MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                setState(() {
+                                  _currentPhotoIndex++;
+                                });
+                              },
+                              child: Center(
+                                child: Container(
+                                  width: 38,
+                                  height: 38,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.95),
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.25),
+                                        blurRadius: 6,
+                                        offset: Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Icon(
+                                    Icons.chevron_right,
+                                    size: 26,
+                                    color: Color(0xFF1F2937),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Indicador de página
+                      Positioned(
+                        bottom: 10,
+                        left: 0,
+                        right: 0,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(
+                            images.length,
+                            (index) => Container(
+                              width: 7,
+                              height: 7,
+                              margin: EdgeInsets.symmetric(horizontal: 3),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: _currentPhotoIndex == index
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.5),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.4),
+                                    blurRadius: 3,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            // Información de la propiedad
+            Padding(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Nombre de la propiedad
+                  Text(
+                    property.propertyName ?? 'Propiedad',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1F2937),
+                      fontFamily: 'Inter',
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  SizedBox(height: 6),
+                  // Ubicación
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 14,
+                        color: Color(0xFF6B7280),
+                      ),
+                      SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          property.propertyNeighborhood ?? 'Ubicación',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF6B7280),
+                            fontFamily: 'Inter',
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 8),
+                  // Detalles y botón
+                  Row(
+                    children: [
+                      if (property.hasRoomsPropiedad()) ...[
+                        Icon(Icons.bed, size: 16, color: Color(0xFF1E3A8A)),
+                        SizedBox(width: 3),
+                        Text(
+                          '${property.roomsPropiedad}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1F2937),
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                      ],
+                      if (property.hasBathsPropiedad()) ...[
+                        Icon(Icons.bathtub, size: 16, color: Color(0xFF1E3A8A)),
+                        SizedBox(width: 3),
+                        Text(
+                          '${property.bathsPropiedad}',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF1F2937),
+                            fontFamily: 'Inter',
+                          ),
+                        ),
+                      ],
+                      Spacer(),
+                      // Botón ver detalles compacto
+                      InkWell(
+                        onTap: () => _onInfoWindowTapped(property),
+                        child: Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Color(0xFF1E3A8A),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Ver',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  fontFamily: 'Inter',
+                                ),
+                              ),
+                              SizedBox(width: 4),
+                              Icon(
+                                Icons.arrow_forward,
+                                size: 14,
+                                color: Colors.white,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      ),
+    );
   }
 
   static const String _darkMapStyle = '''

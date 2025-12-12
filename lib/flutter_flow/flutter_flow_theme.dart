@@ -221,106 +221,106 @@ class ThemeTypography extends Typography {
   final FlutterFlowTheme theme;
 
   String get displayLargeFamily => 'Playfair Display';
-  TextStyle get displayLarge => GoogleFonts.getFont(
-        'Playfair Display',
+  TextStyle get displayLarge => TextStyle(
+        fontFamily: 'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.bold,
         fontSize: 48.0,
       );
   String get displayMediumFamily => 'Playfair Display';
-  TextStyle get displayMedium => GoogleFonts.getFont(
-        'Playfair Display',
+  TextStyle get displayMedium => TextStyle(
+        fontFamily: 'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.bold,
         fontSize: 36.0,
       );
   String get displaySmallFamily => 'Playfair Display';
-  TextStyle get displaySmall => GoogleFonts.getFont(
-        'Playfair Display',
+  TextStyle get displaySmall => TextStyle(
+        fontFamily: 'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
         fontSize: 28.0,
       );
   String get headlineLargeFamily => 'Playfair Display';
-  TextStyle get headlineLarge => GoogleFonts.getFont(
-        'Playfair Display',
+  TextStyle get headlineLarge => TextStyle(
+        fontFamily: 'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
         fontSize: 32.0,
       );
   String get headlineMediumFamily => 'Playfair Display';
-  TextStyle get headlineMedium => GoogleFonts.getFont(
-        'Playfair Display',
+  TextStyle get headlineMedium => TextStyle(
+        fontFamily: 'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
         fontSize: 24.0,
       );
   String get headlineSmallFamily => 'Playfair Display';
-  TextStyle get headlineSmall => GoogleFonts.getFont(
-        'Playfair Display',
+  TextStyle get headlineSmall => TextStyle(
+        fontFamily: 'Playfair Display',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
         fontSize: 20.0,
       );
   String get titleLargeFamily => 'Inter';
-  TextStyle get titleLarge => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get titleLarge => TextStyle(
+        fontFamily: 'Inter',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
         fontSize: 20.0,
       );
   String get titleMediumFamily => 'Inter';
-  TextStyle get titleMedium => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get titleMedium => TextStyle(
+        fontFamily: 'Inter',
         color: theme.secondaryText,
         fontWeight: FontWeight.w600,
         fontSize: 18.0,
       );
   String get titleSmallFamily => 'Inter';
-  TextStyle get titleSmall => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get titleSmall => TextStyle(
+        fontFamily: 'Inter',
         color: theme.primaryText,
         fontWeight: FontWeight.w600,
         fontSize: 16.0,
       );
   String get labelLargeFamily => 'Inter';
-  TextStyle get labelLarge => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get labelLarge => TextStyle(
+        fontFamily: 'Inter',
         color: theme.primaryText,
         fontWeight: FontWeight.w500,
         fontSize: 14.0,
       );
   String get labelMediumFamily => 'Inter';
-  TextStyle get labelMedium => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get labelMedium => TextStyle(
+        fontFamily: 'Inter',
         color: theme.primaryText,
         fontWeight: FontWeight.w500,
         fontSize: 12.0,
       );
   String get labelSmallFamily => 'Inter';
-  TextStyle get labelSmall => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get labelSmall => TextStyle(
+        fontFamily: 'Inter',
         color: theme.primaryText,
         fontWeight: FontWeight.w500,
         fontSize: 11.0,
       );
   String get bodyLargeFamily => 'Inter';
-  TextStyle get bodyLarge => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get bodyLarge => TextStyle(
+        fontFamily: 'Inter',
         color: theme.primaryText,
         fontWeight: FontWeight.normal,
         fontSize: 16.0,
       );
   String get bodyMediumFamily => 'Inter';
-  TextStyle get bodyMedium => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get bodyMedium => TextStyle(
+        fontFamily: 'Inter',
         color: theme.secondaryText,
         fontWeight: FontWeight.normal,
         fontSize: 14.0,
       );
   String get bodySmallFamily => 'Inter';
-  TextStyle get bodySmall => GoogleFonts.getFont(
-        'Inter',
+  TextStyle get bodySmall => TextStyle(
+        fontFamily: 'Inter',
         color: theme.primaryText,
         fontWeight: FontWeight.normal,
         fontSize: 13.0,
@@ -335,32 +335,20 @@ extension TextStyleHelper on TextStyle {
     FontWeight? fontWeight,
     double? letterSpacing,
     FontStyle? fontStyle,
-    bool useGoogleFonts = true,
+    bool useGoogleFonts = false, // Cambiado a false para web
     TextDecoration? decoration,
     double? lineHeight,
     List<Shadow>? shadows,
   }) =>
-      useGoogleFonts
-          ? GoogleFonts.getFont(
-              fontFamily!,
-              color: color ?? this.color,
-              fontSize: fontSize ?? this.fontSize,
-              letterSpacing: letterSpacing ?? this.letterSpacing,
-              fontWeight: fontWeight ?? this.fontWeight,
-              fontStyle: fontStyle ?? this.fontStyle,
-              decoration: decoration,
-              height: lineHeight,
-              shadows: shadows,
-            )
-          : copyWith(
-              fontFamily: fontFamily,
-              color: color,
-              fontSize: fontSize,
-              letterSpacing: letterSpacing,
-              fontWeight: fontWeight,
-              fontStyle: fontStyle,
-              decoration: decoration,
-              height: lineHeight,
-              shadows: shadows,
-            );
+      copyWith(
+        fontFamily: fontFamily,
+        color: color,
+        fontSize: fontSize,
+        letterSpacing: letterSpacing,
+        fontWeight: fontWeight,
+        fontStyle: fontStyle,
+        decoration: decoration,
+        height: lineHeight,
+        shadows: shadows,
+      );
 }

@@ -77,6 +77,21 @@ class FFAppState extends ChangeNotifier {
               _coordenadasMaps;
     });
     _safeInit(() {
+      _filterMinPrice = prefs.getDouble('ff_filterMinPrice') ?? _filterMinPrice;
+    });
+    _safeInit(() {
+      _filterMaxPrice = prefs.getDouble('ff_filterMaxPrice') ?? _filterMaxPrice;
+    });
+    _safeInit(() {
+      _filterRooms = prefs.getInt('ff_filterRooms');
+    });
+    _safeInit(() {
+      _filterType = prefs.getString('ff_filterType');
+    });
+    _safeInit(() {
+      _filterRadiusKm = prefs.getDouble('ff_filterRadiusKm') ?? _filterRadiusKm;
+    });
+    _safeInit(() {
       _tipoPropiedad = prefs.getString('ff_tipoPropiedad') ?? _tipoPropiedad;
     });
     _safeInit(() {
@@ -112,6 +127,55 @@ class FFAppState extends ChangeNotifier {
   }
 
   late SharedPreferences prefs;
+
+  // Filter state
+  double _filterMinPrice = 0;
+  double get filterMinPrice => _filterMinPrice;
+  set filterMinPrice(double value) {
+    _filterMinPrice = value;
+    prefs.setDouble('ff_filterMinPrice', value);
+    notifyListeners();
+  }
+
+  double _filterMaxPrice = 5000000;
+  double get filterMaxPrice => _filterMaxPrice;
+  set filterMaxPrice(double value) {
+    _filterMaxPrice = value;
+    prefs.setDouble('ff_filterMaxPrice', value);
+    notifyListeners();
+  }
+
+  int? _filterRooms;
+  int? get filterRooms => _filterRooms;
+  set filterRooms(int? value) {
+    _filterRooms = value;
+    if (value != null) {
+      prefs.setInt('ff_filterRooms', value);
+    } else {
+      prefs.remove('ff_filterRooms');
+    }
+    notifyListeners();
+  }
+
+  String? _filterType;
+  String? get filterType => _filterType;
+  set filterType(String? value) {
+    _filterType = value;
+    if (value != null) {
+      prefs.setString('ff_filterType', value);
+    } else {
+      prefs.remove('ff_filterType');
+    }
+    notifyListeners();
+  }
+
+  double _filterRadiusKm = 50.0;
+  double get filterRadiusKm => _filterRadiusKm;
+  set filterRadiusKm(double value) {
+    _filterRadiusKm = value;
+    prefs.setDouble('ff_filterRadiusKm', value);
+    notifyListeners();
+  }
 
   String _cardNumber = '';
   String get cardNumber => _cardNumber;

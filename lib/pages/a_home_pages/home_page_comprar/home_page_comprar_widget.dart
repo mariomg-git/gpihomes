@@ -1,11 +1,14 @@
 import '/backend/backend.dart';
+import '/components/filter_modal/filter_modal_widget.dart';
 import '/flutter_flow/flutter_flow_theme.dart';
 import '/flutter_flow/flutter_flow_util.dart';
+import '/flutter_flow/flutter_flow_widgets.dart';
 import '/custom_code/widgets/index.dart' as custom_widgets;
 import '/flutter_flow/custom_functions.dart' as functions;
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'dart:math' show cos, sqrt, asin, sin, pi;
 import 'home_page_comprar_model.dart';
 export 'home_page_comprar_model.dart';
 
@@ -25,8 +28,30 @@ class _HomePageComprarWidgetState extends State<HomePageComprarWidget> {
   void initState() {
     super.initState();
     _model = createModel(context, () => HomePageComprarModel());
+    
+    // Inicializar con valores guardados
+    _model.filterMinPrice = FFAppState().filterMinPrice;
+    _model.filterMaxPrice = FFAppState().filterMaxPrice;
+    _model.filterRooms = FFAppState().filterRooms;
+    _model.filterType = FFAppState().filterType;
+    _model.filterRadiusKm = FFAppState().filterRadiusKm;
 
     WidgetsBinding.instance.addPostFrameCallback((_) => safeSetState(() {}));
+  }
+
+  // Haversine formula para calcular distancia entre dos puntos
+  double _calculateDistance(double lat1, double lon1, double lat2, double lon2) {
+    const double earthRadiusKm = 6371.0;
+    final double dLat = _toRadians(lat2 - lat1);
+    final double dLon = _toRadians(lon2 - lon1);
+    final double a = (sin(dLat / 2) * sin(dLat / 2)) +
+        (cos(_toRadians(lat1)) * cos(_toRadians(lat2)) * sin(dLon / 2) * sin(dLon / 2));
+    final double c = 2 * asin(sqrt(a));
+    return earthRadiusKm * c;
+  }
+
+  double _toRadians(double degree) {
+    return degree * pi / 180;
   }
 
   @override
@@ -70,12 +95,75 @@ class _HomePageComprarWidgetState extends State<HomePageComprarWidget> {
                     children: [
                       Padding(
                         padding: const EdgeInsetsDirectional.fromSTEB(
-                            24.0, 40.0, 0.0, 0.0),
-                        child: Image.asset(
-                          'assets/images/GPI-Homes-black.png',
-                          width: 200.0,
-                          height: 50.0,
-                          fit: BoxFit.contain,
+                            24.0, 40.0, 24.0, 0.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Image.asset(
+                              'assets/images/GPI-Homes-black.png',
+                              width: 200.0,
+                              height: 50.0,
+                              fit: BoxFit.contain,
+                            ),
+                            FFButtonWidget(
+                              onPressed: () async {
+                                final filterResults = await showModalBottomSheet(
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  enableDrag: false,
+                                  context: context,
+                                  builder: (context) {
+                                    return Padding(
+                                      padding: MediaQuery.viewInsetsOf(context),
+                                      child: const FilterModalWidget(),
+                                    );
+                                  },
+                                );
+                                
+                                if (filterResults != null) {
+                                  safeSetState(() {
+                                    _model.filterMinPrice = filterResults['minPrice'] ?? 0;
+                                    _model.filterMaxPrice = filterResults['maxPrice'] ?? 5000000;
+                                    _model.filterRooms = filterResults['rooms'];
+                                    _model.filterType = filterResults['type'];
+                                    _model.filterRadiusKm = filterResults['radiusKm'] ?? 50.0;
+                                    
+                                    // Update FFAppState for map circle
+                                    FFAppState().radioCircle = _model.filterRadiusKm;
+                                  });
+                                }
+                              },
+                              text: FFLocalizations.of(context).getText(
+                                'orqu6q11' /* Filters */,
+                              ),
+                              icon: const Icon(
+                                Icons.filter_list_alt,
+                                size: 25.0,
+                              ),
+                              options: FFButtonOptions(
+                                width: MediaQuery.sizeOf(context).width * 0.25,
+                                height: 40.0,
+                                padding: const EdgeInsetsDirectional.fromSTEB(
+                                    5.0, 0.0, 5.0, 0.0),
+                                iconPadding: const EdgeInsetsDirectional.fromSTEB(
+                                    0.0, 0.0, 0.0, 0.0),
+                                color: const Color(0x9B4B39EF),
+                                textStyle: FlutterFlowTheme.of(context)
+                                    .titleSmall
+                                    .override(
+                                      fontFamily: 'Poiret One',
+                                      color: Colors.white,
+                                      letterSpacing: 0.0,
+                                    ),
+                                elevation: 3.0,
+                                borderSide: const BorderSide(
+                                  color: Colors.transparent,
+                                  width: 1.0,
+                                ),
+                                borderRadius: BorderRadius.circular(16.0),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                       Padding(
@@ -170,8 +258,73 @@ class _HomePageComprarWidgetState extends State<HomePageComprarWidget> {
                           ),
                         );
                       }
-                      List<PropertiesRecord> listViewPropertiesRecordList =
-                          snapshot.data!;
+                      List<PropertiesRecord> allProperties = snapshot.data!;
+                      
+                      // DEBUG: Log inicial
+                      print('========== VENTA PAGE DEBUG ==========');
+                      print('Total propiedades RAW: ${allProperties.length}');
+                      print('Ubicación mapa: ${FFAppState().ubicacionMapaPrinc}');
+                      print('Radio filtro: ${_model.filterRadiusKm} km');
+                      print('Aplicar filtro distancia: ${_model.applyDistanceFilter}');
+                      print('Filtro precio: ${_model.filterMinPrice} - ${_model.filterMaxPrice}');
+                      print('Filtro habitaciones: ${_model.filterRooms}');
+                      print('Filtro tipo: ${_model.filterType}');
+                      
+                      // Filtrar propiedades válidas primero
+                      allProperties = allProperties.where((p) {
+                        bool hasPrice = p.hasPrice();
+                        if (!hasPrice) print('⚠️ ${p.propertyName} - Sin precio');
+                        return hasPrice; // Al menos debe tener precio
+                      }).toList();
+                      
+                      print('Total propiedades VÁLIDAS con precio: ${allProperties.length}');
+                      
+                      // Aplicar filtros
+                      List<PropertiesRecord> listViewPropertiesRecordList = allProperties.where((property) {
+                        // Price filter
+                        if (_model.filterMinPrice > 0 || _model.filterMaxPrice < 5000000) {
+                          if (property.price < _model.filterMinPrice || property.price > _model.filterMaxPrice) {
+                            print('Filtrado por precio: ${property.propertyName} (${property.price})');
+                            return false;
+                          }
+                        }
+                        
+                        // Rooms filter
+                        if (_model.filterRooms != null && property.roomsPropiedad != _model.filterRooms) {
+                          print('Filtrado por habitaciones: ${property.propertyName} (${property.roomsPropiedad} vs ${_model.filterRooms})');
+                          return false;
+                        }
+                        
+                        // Property type filter
+                        if (_model.filterType != null && property.tipoVendedor != _model.filterType) {
+                          print('Filtrado por tipo: ${property.propertyName} (${property.tipoVendedor} vs ${_model.filterType})');
+                          return false;
+                        }
+                        
+                        // Distance filter
+                        if (_model.applyDistanceFilter && FFAppState().ubicacionMapaPrinc != null && property.propertyCoords != null) {
+                          double distance = _calculateDistance(
+                            FFAppState().ubicacionMapaPrinc!.latitude,
+                            FFAppState().ubicacionMapaPrinc!.longitude,
+                            property.propertyCoords!.latitude,
+                            property.propertyCoords!.longitude,
+                          );
+                          print('${property.propertyName} - Distancia: ${distance.toStringAsFixed(2)} km');
+                          if (distance > _model.filterRadiusKm) {
+                            print('  ❌ Fuera del radio (>${_model.filterRadiusKm} km)');
+                            return false;
+                          }
+                          print('  ✅ Dentro del radio');
+                        } else if (_model.applyDistanceFilter && property.propertyCoords == null) {
+                          print('${property.propertyName} - ⚠️ Sin coordenadas, excluido del filtro de distancia');
+                          return false;
+                        }
+                        
+                        return true;
+                      }).toList();
+                      
+                      print('Propiedades después del filtro: ${listViewPropertiesRecordList.length}');
+                      print('======================================');
 
                       return ListView.builder(
                         padding: EdgeInsets.zero,

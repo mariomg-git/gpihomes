@@ -16,6 +16,7 @@
     }
   ],
   "hosting": {
+    "site": "gpipropiedades",
     "public": "build/web",
     "ignore": [
       "firebase.json",
