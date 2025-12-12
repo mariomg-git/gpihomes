@@ -17,3 +17,4 @@ export 'a_preview360_propiedad.dart' show APreview360Propiedad;
 export 'a_panos_creator.dart' show APanosCreator;
 export 'calendar_date_viewer.dart' show CalendarDateViewer;
 export 'calendar_inicio_contrato.dart' show CalendarInicioContrato;
+export 'property_qr_code.dart' show PropertyQrCode;

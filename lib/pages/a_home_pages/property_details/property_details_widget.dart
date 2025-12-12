@@ -3,6 +3,8 @@ import '/backend/backend.dart';
 import '/components/a_modal_prospectos_opc_widget.dart';
 import '/components/amenitity_indicator/amenitity_indicator_widget.dart';
 import '/components/modal_view_multiphotos_widget.dart';
+import '/custom_code/actions/index.dart';
+import '/custom_code/widgets/index.dart';
 import '/flutter_flow/flutter_flow_animations.dart';
 import '/flutter_flow/flutter_flow_expanded_image_view.dart';
 import '/flutter_flow/flutter_flow_google_map.dart';
@@ -20,6 +22,7 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'property_details_model.dart';
 export 'property_details_model.dart';
 
@@ -1618,43 +1621,110 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                     child: Padding(
                       padding: const EdgeInsetsDirectional.fromSTEB(
                           16.0, 16.0, 16.0, 40.0),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.max,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
+                          // Fila del precio
+                          Row(
                             mainAxisSize: MainAxisSize.max,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.max,
-                                children: [
-                                  Text(
-                                    formatNumber(
-                                      widget.propertyRef!.price,
-                                      formatType: FormatType.decimal,
-                                      decimalType: DecimalType.periodDecimal,
-                                      currency: '',
+                              Text(
+                                formatNumber(
+                                  widget.propertyRef!.price,
+                                  formatType: FormatType.decimal,
+                                  decimalType: DecimalType.periodDecimal,
+                                  currency: '\$',
+                                ),
+                                style: FlutterFlowTheme.of(context)
+                                    .headlineSmall
+                                    .override(
+                                      fontFamily: 'Poiret One',
+                                      color: FlutterFlowTheme.of(context)
+                                          .secondaryBackground,
+                                      letterSpacing: 0.0,
+                                      fontWeight: FontWeight.w600,
                                     ),
-                                    style: FlutterFlowTheme.of(context)
-                                        .headlineSmall
-                                        .override(
-                                          fontFamily: 'Poiret One',
-                                          color: FlutterFlowTheme.of(context)
-                                              .secondaryBackground,
-                                          letterSpacing: 0.0,
-                                        ),
-                                  ),
-                                ],
                               ),
                             ],
                           ),
-                          Expanded(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.max,
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
+                          const SizedBox(height: 12.0),
+                          // Fila de iconos
+                          Row(
+                            mainAxisSize: MainAxisSize.max,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                                // Botón WhatsApp
+                                Align(
+                                  alignment: const AlignmentDirectional(0.0, 0.0),
+                                  child: Padding(
+                                    padding: const EdgeInsetsDirectional.fromSTEB(
+                                        0.0, 0.0, 10.0, 0.0),
+                                    child: FlutterFlowIconButton(
+                                      borderWidth: 1.0,
+                                      buttonSize: 55.0,
+                                      icon: FaIcon(
+                                        FontAwesomeIcons.whatsapp,
+                                        color: Color(0xFF25D366),
+                                        size: 40.0,
+                                      ),
+                                      onPressed: () async {
+                                        final propertyId = widget.propertyRef?.reference.id ?? '';
+                                        final propertyName = widget.propertyRef?.propertyName ?? 'Propiedad';
+                                        final propertyPrice = formatNumber(
+                                          widget.propertyRef!.price,
+                                          formatType: FormatType.decimal,
+                                          decimalType: DecimalType.automatic,
+                                          currency: '\$',
+                                        );
+                                        
+                                        await shareViaWhatsapp(
+                                          propertyId,
+                                          propertyName,
+                                          propertyPrice,
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                                // Botón QR Code
+                                Align(
+                                  alignment: const AlignmentDirectional(0.0, 0.0),
+                                  child: Builder(
+                                    builder: (context) => Padding(
+                                      padding: const EdgeInsetsDirectional.fromSTEB(
+                                          0.0, 0.0, 10.0, 0.0),
+                                      child: FlutterFlowIconButton(
+                                        borderWidth: 1.0,
+                                        buttonSize: 55.0,
+                                        icon: Icon(
+                                          Icons.qr_code,
+                                          color: FlutterFlowTheme.of(context).primary,
+                                          size: 44.0,
+                                        ),
+                                        onPressed: () async {
+                                          await showDialog(
+                                            context: context,
+                                            builder: (dialogContext) {
+                                              return Dialog(
+                                                backgroundColor: Colors.transparent,
+                                                child: SizedBox(
+                                                  width: 300,
+                                                  height: 350,
+                                                  child: PropertyQrCode(
+                                                    propertyId: widget.propertyRef?.reference.id ?? '',
+                                                    size: 220,
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Botón Compartir General
                                 Align(
                                   alignment: const AlignmentDirectional(0.0, 0.0),
                                   child: Builder(
@@ -1671,45 +1741,28 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                           size: 44.0,
                                         ),
                                         onPressed: () async {
-                                          await showDialog(
-                                            context: context,
-                                            builder: (alertDialogContext) {
-                                              return AlertDialog(
-                                                title: const Text('Info'),
-                                                content: const Text(
-                                                    'Se agrego a Favoritos ¡'),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                            alertDialogContext),
-                                                    child: const Text('Ok'),
-                                                  ),
-                                                ],
-                                              );
-                                            },
+                                          final propertyId = widget.propertyRef?.reference.id ?? '';
+                                          final propertyName = widget.propertyRef?.propertyName ?? 'Propiedad';
+                                          final propertyPrice = formatNumber(
+                                            widget.propertyRef!.price,
+                                            formatType: FormatType.decimal,
+                                            decimalType: DecimalType.automatic,
+                                            currency: '\$',
                                           );
-
-                                          await currentUserReference!.update({
-                                            ...mapToFirestore(
-                                              {
-                                                'favoritos':
-                                                    FieldValue.arrayUnion([
-                                                  widget.propertyRef?.reference
-                                                ]),
-                                              },
-                                            ),
-                                          });
-                                          await Share.share(
-                                            'gpihomes://gpihomes.com${GoRouterState.of(context).uri.toString()}',
-                                            sharePositionOrigin:
-                                                getWidgetBoundingBox(context),
+                                          
+                                          // Compartir con Analytics
+                                          await sharePropertyWithAnalytics(
+                                            propertyId,
+                                            propertyName,
+                                            propertyPrice,
+                                            widget.propertyRef?.mainImage,
                                           );
                                         },
                                       ),
                                     ),
                                   ),
                                 ),
+                                // Botón Favoritos
                                 Align(
                                   alignment: const AlignmentDirectional(0.0, 0.0),
                                   child: Padding(
@@ -1809,7 +1862,6 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                 ),
                               ],
                             ),
-                          ),
                         ],
                       ),
                     ),
