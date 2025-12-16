@@ -24,15 +24,6 @@ import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
 
-String varidVirtualTour =
-    FFAppState().globalVar2; //PARAMETRIZAR pasar con FFappstate
-String idTour = '';
-String idTourInit =
-    FFAppState().globalVar1; //PARAMETRIZAR para cargar el tour principal
-
-String imageTour = '';
-bool _isLoading = true;
-
 class Ver360Propiedad extends StatefulWidget {
   const Ver360Propiedad({
     super.key,
@@ -49,42 +40,62 @@ class Ver360Propiedad extends StatefulWidget {
   State<Ver360Propiedad> createState() => _Ver360PropiedadState();
 }
 
-class _Ver360PropiedadState extends State<Ver360Propiedad> {
+class _Ver360PropiedadState extends State<Ver360Propiedad> with SingleTickerProviderStateMixin {
   int _currentIndex = 0;
+  int _totalPanoramas = 1;
+  String _currentPanoramaName = '';
 
   double _lon = 0;
   double _lat = 0;
   double _tilt = 0;
 
+  // Variables movidas del scope global al state
+  String _varidVirtualTour = '';
+  String _idTour = '';
+  String _idTourInit = '';
+  String _imageTour = '';
+  bool _isLoading = true;
+  String? _errorMessage;
+  
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
   var hotspotsArray = [
     Hotspot(),
   ];
 
-  void addHotspot(double lat, double lon, String zLink) {
+  void addHotspot(double lat, double lon, String zLink, {String name = ''}) {
     setState(() {
       hotspotsArray.add(Hotspot(
         latitude: lat,
         longitude: lon,
         width: 100.0,
         height: 100.0,
-        widget: Stack(
-          // Use Stack for efficient button placement
-          children: [
-            hotspotButton(
-              // Existing hotspot button
-              icon: Icons.gps_not_fixed,
-
-              //text: "Borrar",
-              onPressed: () {
-                // selectPanorama(lat, lon);
-                loadPanoramaImage(zLink);
-                print(
-                    'Info mod ${lat.toStringAsFixed(3)}, ${lon.toStringAsFixed(3)}');
-              },
-            ),
-          ],
+        widget: Semantics(
+          label: 'Ir a panorama ${name.isNotEmpty ? name : "siguiente"}',
+          button: true,
+          child: AnimatedBuilder(
+            animation: _pulseAnimation,
+            builder: (context, child) {
+              return Transform.scale(
+                scale: 1.0 + (_pulseAnimation.value * 0.1),
+                child: Stack(
+                  children: [
+                    hotspotButton(
+                      icon: Icons.gps_not_fixed,
+                      name: name,
+                      onPressed: () {
+                        loadPanoramaImage(zLink, name);
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ));
+      _totalPanoramas = hotspotsArray.length;
     });
   }
 
@@ -97,33 +108,63 @@ class _Ver360PropiedadState extends State<Ver360Propiedad> {
   }
 
   Widget hotspotButton(
-      {String? text, IconData? icon, VoidCallback? onPressed}) {
+      {String? text, String? name, IconData? icon, VoidCallback? onPressed}) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        TextButton(
-          style: ButtonStyle(
-            minimumSize: MaterialStateProperty.all(Size(80.0, 80.0)),
-            shape: MaterialStateProperty.all(CircleBorder()),
-            backgroundColor: MaterialStateProperty.all(Colors.black38),
-            foregroundColor: MaterialStateProperty.all(Colors.white),
+        Container(
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            border: Border.all(color: Colors.white, width: 3.0),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black54,
+                blurRadius: 8.0,
+                spreadRadius: 2.0,
+              ),
+            ],
           ),
-          child: Icon(
-            icon,
-            // Set the desired icon size
-            size: 40.0, // Adjust this value as needed
+          child: TextButton(
+            style: ButtonStyle(
+              minimumSize: MaterialStateProperty.all(Size(80.0, 80.0)),
+              shape: MaterialStateProperty.all(CircleBorder()),
+              backgroundColor: MaterialStateProperty.all(Colors.blue.withOpacity(0.7)),
+              foregroundColor: MaterialStateProperty.all(Colors.white),
+            ),
+            child: Icon(
+              icon,
+              size: 40.0,
+            ),
+            onPressed: onPressed,
           ),
-          onPressed: onPressed,
         ),
-        text != null
-            ? Container(
-                padding: EdgeInsets.all(4.0),
-                decoration: BoxDecoration(
-                    color: Colors.black38,
-                    borderRadius: BorderRadius.all(Radius.circular(4))),
-                child: Center(child: Text(text)),
-              )
-            : Container(),
+        if (name != null && name.isNotEmpty)
+          Container(
+            margin: EdgeInsets.only(top: 8.0),
+            padding: EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+            decoration: BoxDecoration(
+              color: Colors.black87,
+              borderRadius: BorderRadius.all(Radius.circular(16)),
+              border: Border.all(color: Colors.white, width: 1.5),
+            ),
+            child: Text(
+              name,
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 12.0,
+              ),
+            ),
+          ),
+        if (text != null && text.isNotEmpty)
+          Container(
+            padding: EdgeInsets.all(4.0),
+            decoration: BoxDecoration(
+              color: Colors.black38,
+              borderRadius: BorderRadius.all(Radius.circular(4)),
+            ),
+            child: Center(child: Text(text)),
+          ),
       ],
     );
   }
@@ -138,28 +179,62 @@ class _Ver360PropiedadState extends State<Ver360Propiedad> {
   @override
   void initState() {
     super.initState();
-    print('idinit: ' + idTourInit);
-    if (idTourInit == '') {
-      print('malo');
-      // Muestra el mensaje después de que initState haya completado
+    
+    // Inicializar variables de estado
+    _varidVirtualTour = FFAppState().globalVar2;
+    _idTourInit = FFAppState().globalVar1;
+    
+    // Configurar animación pulsante para hotspots
+    _pulseController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+    
+    if (_idTourInit.isEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _showImageSelectionMessage(context);
       });
     } else {
-      // Si idTourInit no está vacío, continúa con la inicialización normal
-      getVirtualTourData(idTourInit);
-
-      // Example: Fetch data asynchronously and update state
-      Future<void>.delayed(const Duration(seconds: 2), () {
-        images.clear();
-        images.add(imageTour);
-
+      _loadInitialTour();
+    }
+  }
+  
+  Future<void> _loadInitialTour() async {
+    try {
+      await getVirtualTourData(_idTourInit);
+      
+      if (mounted && _imageTour.isNotEmpty) {
         setState(() {
-          _currentIndex = 0; // Update state after a delay
+          images.clear();
+          images.add(_imageTour);
+          _currentIndex = 0;
           _isLoading = false;
         });
-      });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error al cargar el tour virtual';
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar el tour: $e'),
+            backgroundColor: Colors.red,
+            duration: Duration(seconds: 4),
+          ),
+        );
+      }
     }
+  }
+  
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
   }
 
   void _showImageSelectionMessage(BuildContext context) {
@@ -192,7 +267,7 @@ class _Ver360PropiedadState extends State<Ver360Propiedad> {
       // Reference to the specific document containing the data
       final docRef = firestore
           .collection('virtualTours')
-          .doc(varidVirtualTour)
+          .doc(_varidVirtualTour)
           .collection('tours')
           .doc(idDocTour);
 
@@ -204,26 +279,46 @@ class _Ver360PropiedadState extends State<Ver360Propiedad> {
         // Extract the data map
         final data = docSnapshot.data() as Map<String, dynamic>;
 
-        imageTour = data['imageUploaded'] as String;
+        _imageTour = data['imageUploaded'] as String? ?? '';
+        _currentPanoramaName = data['nombre'] as String? ?? 'Panorama principal';
 
         // Extract the 'hotspots' array (assuming it's an array)
-        final hotspots = data['hotspots'] as List<dynamic>;
-
-        // Convert each hotspot to a map for clarity (optional)
+        final hotspots = data['hotspots'] as List<dynamic>? ?? [];
 
         final processedHotspots = hotspots.map((hotspot) {
-          idTour = hotspot['idTour'] as String;
-          addHotspot(hotspot['lat'], hotspot['lon'], hotspot['zLink']);
+          _idTour = hotspot['idTour'] as String? ?? '';
+          final hotspotName = hotspot['nombre'] as String? ?? '';
+          addHotspot(
+            hotspot['lat'] as double,
+            hotspot['lon'] as double,
+            hotspot['zLink'] as String,
+            name: hotspotName,
+          );
           return hotspot as Map<String, dynamic>;
         }).toList();
-        return processedHotspots; // Return the processed array
+        return processedHotspots;
       } else {
-        print('Document not found in Firestore');
-        return []; // Return empty array if document doesn't exist
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Tour virtual no encontrado'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        return [];
       }
     } catch (error) {
-      print('Error retrieving data from Firestore: $error');
-      return []; // Return empty array on error
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al cargar tour: $error'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+      return [];
     }
   }
 
@@ -231,33 +326,88 @@ class _Ver360PropiedadState extends State<Ver360Propiedad> {
   Widget build(BuildContext context) {
     Widget panorama;
     panorama = AnimatedOpacity(
-      opacity: _isLoading ? 0.5 : 1.0, // Ocultar si no hay imagen seleccionada
-      duration: Duration(milliseconds: 500), // Duración de la animación
-      child: Panorama(
-        animSpeed: 0.0,
-        maxZoom: 1.0,
-        minZoom: 1.0,
-
-        //sensorControl: SensorControl.Orientation,
-        onViewChanged: onViewChanged,
-        //onTap: (longitude, latitude, tilt) => addHotspot(latitude, longitude),
-        child: Image.network(images[_currentIndex]),
-        hotspots: hotspotsArray,
+      opacity: _isLoading ? 0.5 : 1.0,
+      duration: const Duration(milliseconds: 500),
+      child: Semantics(
+        label: 'Vista panorámica 360 grados. ${_currentPanoramaName}. ${_totalPanoramas > 1 ? "Toca los puntos para navegar" : ""}',
+        child: Panorama(
+          animSpeed: 0.5,
+          maxZoom: 3.0,
+          minZoom: 0.5,
+          onViewChanged: onViewChanged,
+          child: Image.network(
+            images[_currentIndex],
+            loadingBuilder: (context, child, loadingProgress) {
+              if (loadingProgress == null) return child;
+              return Container(
+                color: Colors.grey[900],
+                child: const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                ),
+              );
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                color: Colors.grey[900],
+                child: const Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.error_outline, color: Colors.red, size: 48),
+                      SizedBox(height: 16),
+                      Text(
+                        'Error al cargar imagen',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          hotspots: hotspotsArray,
+        ),
       ),
     );
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Preview'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Recorrido Virtual 360°'),
+            if (_currentPanoramaName.isNotEmpty)
+              Text(
+                _currentPanoramaName,
+                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.normal),
+              ),
+          ],
+        ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back),
+          tooltip: 'Volver',
           onPressed: () {
-            // idTourInit = '';
-            //AQUIIIIIIIIII  PARA que solo se agregen y no editen tours, solo se pueden agregar niveles y nuevos tours pero no editar, para editar, mejor eliminar nivel y volve a crear
-            // images.clear();
-            // imageTour = '';
             Navigator.pop(context);
           },
         ),
+        actions: [
+          if (_totalPanoramas > 1)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+                  decoration: BoxDecoration(
+                    color: Colors.black26,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Text(
+                    'Panorama ${_currentIndex + 1} de $_totalPanoramas',
+                    style: const TextStyle(fontSize: 12),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Stack(children: [
         Column(
@@ -281,29 +431,42 @@ class _Ver360PropiedadState extends State<Ver360Propiedad> {
     );
   }
 
-  Future<void> loadPanoramaImage(String? imageName) async {
-    // Muestra el loader
+  Future<void> loadPanoramaImage(String? imageName, String name) async {
+    if (imageName == null || imageName.isEmpty) return;
+    
     setState(() {
       _isLoading = true;
+      _errorMessage = null;
     });
 
-    images.clear();
-    hotspotsArray.clear();
-    images.add(imageName!);
-    await getVirtualTourData(idTour);
+    try {
+      images.clear();
+      hotspotsArray.clear();
+      images.add(imageName);
+      
+      await getVirtualTourData(_idTour);
 
-    // Encuentra el índice de la imagen seleccionada en la lista de imágenes
-    int selectedIndex = images.indexOf(imageName);
-    if (selectedIndex != -1) {
-      setState(() {
-        _currentIndex = selectedIndex;
-        Future<void>.delayed(const Duration(seconds: 1), () {
-          setState(() {
-            _isLoading =
-                false; // Oculta el loader una vez que se ha cargado la imagen
-          });
+      int selectedIndex = images.indexOf(imageName);
+      if (selectedIndex != -1 && mounted) {
+        setState(() {
+          _currentIndex = selectedIndex;
+          _currentPanoramaName = name.isNotEmpty ? name : 'Panorama';
+          _isLoading = false;
         });
-      });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Error al cambiar de panorama';
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

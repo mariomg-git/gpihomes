@@ -78,14 +78,13 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
       debugLogDiagnostics: true,
       refreshListenable: appStateNotifier,
       navigatorKey: appNavigatorKey,
-      errorBuilder: (context, state) =>
-          appStateNotifier.loggedIn ? const NavBarPage() : const LoginWidget(),
+      errorBuilder: (context, state) => const NavBarPage(),
       routes: [
         FFRoute(
           name: '_initialize',
           path: '/',
-          builder: (context, _) =>
-              appStateNotifier.loggedIn ? const NavBarPage() : const LoginWidget(),
+          requireAuth: false,
+          builder: (context, _) => const NavBarPage(),
           routes: [
             FFRoute(
               name: 'login',
@@ -100,6 +99,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'homePage_MAIN',
               path: 'homePageMAIN',
+              requireAuth: false,
               builder: (context, params) => params.isEmpty
                   ? const NavBarPage(initialPage: 'homePage_MAIN')
                   : const HomePageMAINWidget(),
@@ -107,6 +107,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'propertyDetails',
               path: 'propertyDetails',
+              requireAuth: false,
               asyncParams: {
                 'propertyRef':
                     getDoc(['properties'], PropertiesRecord.fromSnapshot),
@@ -121,6 +122,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'searchProperties',
               path: 'searchProperties',
+              requireAuth: false,
               builder: (context, params) => SearchPropertiesWidget(
                 searchTerm: params.getParam(
                   'searchTerm',
@@ -390,6 +392,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
             FFRoute(
               name: 'homePage_Comprar',
               path: 'homePageComprar',
+              requireAuth: false,
               builder: (context, params) => params.isEmpty
                   ? const NavBarPage(initialPage: 'homePage_Comprar')
                   : const HomePageComprarWidget(),

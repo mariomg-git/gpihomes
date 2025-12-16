@@ -221,8 +221,7 @@ class _HomePageComprarWidgetState extends State<HomePageComprarWidget> {
                             child: custom_widgets.MapPropiedades(
                               width: MediaQuery.sizeOf(context).width * 1.0,
                               height: 300.0,
-                              actionPaarama: () async {},
-                            ),
+                              actionPaarama: () async {},                            tipoPropiedad: 'Venta',                            ),
                           ),
                         ],
                       ),

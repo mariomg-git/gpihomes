@@ -197,8 +197,7 @@ class _HomePageMAINWidgetState extends State<HomePageMAINWidget> {
                                   height: 300.0,
                                   actionPaarama: () async {
                                     safeSetState(() {});
-                                  },
-                                ),
+                                  },                                tipoPropiedad: 'Renta',                                ),
                               ),
                             ],
                           ),

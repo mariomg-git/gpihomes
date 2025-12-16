@@ -160,12 +160,21 @@ class _NavBarPageState extends State<NavBarPage> {
 
   @override
   Widget build(BuildContext context) {
-    final tabs = {
-      'homePage_MAIN': const HomePageMAINWidget(),
-      'homePage_Comprar': const HomePageComprarWidget(),
-      'homePage_Publicar': const HomePagePublicarWidget(),
-      'profilePage': const ProfilePageWidget(),
-    };
+    final isLoggedIn = loggedIn;
+    
+    final Map<String, Widget> tabs = isLoggedIn
+        ? {
+            'homePage_MAIN': const HomePageMAINWidget(),
+            'homePage_Comprar': const HomePageComprarWidget(),
+            'homePage_Publicar': const HomePagePublicarWidget(),
+            'profilePage': const ProfilePageWidget(),
+          }
+        : {
+            'homePage_MAIN': const HomePageMAINWidget(),
+            'homePage_Comprar': const HomePageComprarWidget(),
+            'login': const LoginWidget(),
+          };
+    
     final currentIndex = tabs.keys.toList().indexOf(_currentPageName);
 
     final MediaQueryData queryData = MediaQuery.of(context);
@@ -175,10 +184,10 @@ class _NavBarPageState extends State<NavBarPage> {
           data: queryData
               .removeViewInsets(removeBottom: true)
               .removeViewPadding(removeBottom: true),
-          child: _currentPage ?? tabs[_currentPageName]!),
+          child: _currentPage ?? tabs[_currentPageName] ?? tabs.values.first),
       extendBody: true,
       bottomNavigationBar: FloatingNavbar(
-        currentIndex: currentIndex,
+        currentIndex: currentIndex >= 0 ? currentIndex : 0,
         onTap: (i) => safeSetState(() {
           _currentPage = null;
           _currentPageName = tabs.keys.toList()[i];
@@ -193,120 +202,209 @@ class _NavBarPageState extends State<NavBarPage> {
         padding: const EdgeInsetsDirectional.fromSTEB(8.0, 8.0, 8.0, 8.0),
         width: double.infinity,
         elevation: 8.0,
-        items: [
-          FloatingNavbarItem(
-            customWidget: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  currentIndex == 0 ? Icons.home_rounded : Icons.home_outlined,
-                  color: currentIndex == 0
-                      ? FlutterFlowTheme.of(context).primary
-                      : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 0 ? 26.0 : 24.0,
-                ),
-                Text(
-                  FFLocalizations.of(context).getText(
-                    'pc1xe8og' /* Rent */,
+        items: isLoggedIn
+            ? [
+                // Tab 1: Rentas (siempre visible)
+                FloatingNavbarItem(
+                  customWidget: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        currentIndex == 0 ? Icons.home_rounded : Icons.home_outlined,
+                        color: currentIndex == 0
+                            ? FlutterFlowTheme.of(context).primary
+                            : FlutterFlowTheme.of(context).grayIcon,
+                        size: currentIndex == 0 ? 26.0 : 24.0,
+                      ),
+                      Text(
+                        FFLocalizations.of(context).getText(
+                          'pc1xe8og' /* Rent */,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: currentIndex == 0
+                              ? FlutterFlowTheme.of(context).primary
+                              : FlutterFlowTheme.of(context).grayIcon,
+                          fontSize: 11.0,
+                          fontWeight: currentIndex == 0 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
                   ),
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: currentIndex == 0
-                        ? FlutterFlowTheme.of(context).primary
-                        : FlutterFlowTheme.of(context).grayIcon,
-                    fontSize: 11.0,
-                    fontWeight: currentIndex == 0 ? FontWeight.w600 : FontWeight.normal,
+                ),
+                // Tab 2: Ventas (siempre visible)
+                FloatingNavbarItem(
+                  customWidget: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        currentIndex == 1 ? Icons.add_home_work : Icons.add_home_work,
+                        color: currentIndex == 1
+                            ? FlutterFlowTheme.of(context).primary
+                            : FlutterFlowTheme.of(context).grayIcon,
+                        size: currentIndex == 1 ? 26.0 : 24.0,
+                      ),
+                      Text(
+                        FFLocalizations.of(context).getText(
+                          'begxdg5m' /* Buy */,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: currentIndex == 1
+                              ? FlutterFlowTheme.of(context).primary
+                              : FlutterFlowTheme.of(context).grayIcon,
+                          fontSize: 11.0,
+                          fontWeight: currentIndex == 1 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
+                // Tab 3: Publicar (solo si está logueado)
+                FloatingNavbarItem(
+                  customWidget: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        currentIndex == 2
+                            ? Icons.publish_rounded
+                            : Icons.publish_outlined,
+                        color: currentIndex == 2
+                            ? FlutterFlowTheme.of(context).primary
+                            : FlutterFlowTheme.of(context).grayIcon,
+                        size: currentIndex == 2 ? 26.0 : 24.0,
+                      ),
+                      Text(
+                        FFLocalizations.of(context).getText(
+                          'sm6qo734' /* Publish */,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: currentIndex == 2
+                              ? FlutterFlowTheme.of(context).primary
+                              : FlutterFlowTheme.of(context).grayIcon,
+                          fontSize: 11.0,
+                          fontWeight: currentIndex == 2 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Tab 4: Perfil (solo si está logueado)
+                FloatingNavbarItem(
+                  customWidget: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        currentIndex == 3
+                            ? Icons.account_circle
+                            : Icons.account_circle_outlined,
+                        color: currentIndex == 3
+                            ? FlutterFlowTheme.of(context).primary
+                            : FlutterFlowTheme.of(context).grayIcon,
+                        size: currentIndex == 3 ? 26.0 : 24.0,
+                      ),
+                      Text(
+                        FFLocalizations.of(context).getText(
+                          'ihyid5uw' /* Profile */,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: currentIndex == 3
+                              ? FlutterFlowTheme.of(context).primary
+                              : FlutterFlowTheme.of(context).grayIcon,
+                          fontSize: 11.0,
+                          fontWeight: currentIndex == 3 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              ]
+            : [
+                // Usuario NO logueado: Rentas, Ventas, Login
+                FloatingNavbarItem(
+                  customWidget: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        currentIndex == 0 ? Icons.home_rounded : Icons.home_outlined,
+                        color: currentIndex == 0
+                            ? FlutterFlowTheme.of(context).primary
+                            : FlutterFlowTheme.of(context).grayIcon,
+                        size: currentIndex == 0 ? 26.0 : 24.0,
+                      ),
+                      Text(
+                        FFLocalizations.of(context).getText(
+                          'pc1xe8og' /* Rent */,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: currentIndex == 0
+                              ? FlutterFlowTheme.of(context).primary
+                              : FlutterFlowTheme.of(context).grayIcon,
+                          fontSize: 11.0,
+                          fontWeight: currentIndex == 0 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                FloatingNavbarItem(
+                  customWidget: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        currentIndex == 1 ? Icons.add_home_work : Icons.add_home_work,
+                        color: currentIndex == 1
+                            ? FlutterFlowTheme.of(context).primary
+                            : FlutterFlowTheme.of(context).grayIcon,
+                        size: currentIndex == 1 ? 26.0 : 24.0,
+                      ),
+                      Text(
+                        FFLocalizations.of(context).getText(
+                          'begxdg5m' /* Buy */,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: currentIndex == 1
+                              ? FlutterFlowTheme.of(context).primary
+                              : FlutterFlowTheme.of(context).grayIcon,
+                          fontSize: 11.0,
+                          fontWeight: currentIndex == 1 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                FloatingNavbarItem(
+                  customWidget: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        currentIndex == 2
+                            ? Icons.login_rounded
+                            : Icons.login_outlined,
+                        color: currentIndex == 2
+                            ? FlutterFlowTheme.of(context).primary
+                            : FlutterFlowTheme.of(context).grayIcon,
+                        size: currentIndex == 2 ? 26.0 : 24.0,
+                      ),
+                      Text(
+                        'Login',
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: currentIndex == 2
+                              ? FlutterFlowTheme.of(context).primary
+                              : FlutterFlowTheme.of(context).grayIcon,
+                          fontSize: 11.0,
+                          fontWeight: currentIndex == 2 ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               ],
-            ),
-          ),
-          FloatingNavbarItem(
-            customWidget: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  currentIndex == 1 ? Icons.add_home_work : Icons.add_home_work,
-                  color: currentIndex == 1
-                      ? FlutterFlowTheme.of(context).primary
-                      : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 1 ? 26.0 : 24.0,
-                ),
-                Text(
-                  FFLocalizations.of(context).getText(
-                    'begxdg5m' /* Buy */,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: currentIndex == 1
-                        ? FlutterFlowTheme.of(context).primary
-                        : FlutterFlowTheme.of(context).grayIcon,
-                    fontSize: 11.0,
-                    fontWeight: currentIndex == 1 ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          FloatingNavbarItem(
-            customWidget: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  currentIndex == 2
-                      ? Icons.publish_rounded
-                      : Icons.publish_outlined,
-                  color: currentIndex == 2
-                      ? FlutterFlowTheme.of(context).primary
-                      : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 2 ? 26.0 : 24.0,
-                ),
-                Text(
-                  FFLocalizations.of(context).getText(
-                    'sm6qo734' /* Publish */,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: currentIndex == 2
-                        ? FlutterFlowTheme.of(context).primary
-                        : FlutterFlowTheme.of(context).grayIcon,
-                    fontSize: 11.0,
-                    fontWeight: currentIndex == 2 ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          FloatingNavbarItem(
-            customWidget: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  currentIndex == 3
-                      ? Icons.account_circle
-                      : Icons.account_circle_outlined,
-                  color: currentIndex == 3
-                      ? FlutterFlowTheme.of(context).primary
-                      : FlutterFlowTheme.of(context).grayIcon,
-                  size: currentIndex == 3 ? 26.0 : 24.0,
-                ),
-                Text(
-                  FFLocalizations.of(context).getText(
-                    'ihyid5uw' /* Profile */,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: currentIndex == 3
-                        ? FlutterFlowTheme.of(context).primary
-                        : FlutterFlowTheme.of(context).grayIcon,
-                    fontSize: 11.0,
-                    fontWeight: currentIndex == 3 ? FontWeight.w600 : FontWeight.normal,
-                  ),
-                ),
-              ],
-            ),
-          )
-        ],
       ),
     );
   }

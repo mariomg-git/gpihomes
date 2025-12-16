@@ -32,11 +32,13 @@ class MapPropiedades extends StatefulWidget {
     this.width,
     this.height,
     required this.actionPaarama,
+    this.tipoPropiedad,
   }) : super(key: key);
 
   final double? width;
   final double? height;
   final Future<dynamic> Function() actionPaarama;
+  final String? tipoPropiedad;
 
   @override
   _MapPropiedadesState createState() => _MapPropiedadesState();
@@ -238,8 +240,17 @@ class _MapPropiedadesState extends State<MapPropiedades> {
     Set<map.Marker> newMarkers = {};
 
     try {
-      QuerySnapshot querySnapshot =
-          await FirebaseFirestore.instance.collection('properties').get();
+      // Construir query con filtros
+      Query query = FirebaseFirestore.instance
+          .collection('properties')
+          .where('status', isEqualTo: 'Revisado');
+      
+      // Filtrar por tipo si se especifica
+      if (widget.tipoPropiedad != null) {
+        query = query.where('tipoPropiedad', isEqualTo: widget.tipoPropiedad);
+      }
+      
+      QuerySnapshot querySnapshot = await query.get();
 
       for (var doc in querySnapshot.docs) {
         try {
@@ -526,10 +537,10 @@ class _MapPropiedadesState extends State<MapPropiedades> {
       child: GestureDetector(
         onTap: () {}, // Absorber taps para no pasar al mapa
         child: Container(
-          constraints: BoxConstraints(maxWidth: 420),
+          constraints: BoxConstraints(maxWidth: 303),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withOpacity(0.2),
@@ -552,7 +563,7 @@ class _MapPropiedadesState extends State<MapPropiedades> {
                   children: [
                     // Imagen actual del slider
                     Container(
-                      height: 180,
+                      height: 130,
                       width: double.infinity,
                       child: images[_currentPhotoIndex].isNotEmpty
                           ? Image.network(
@@ -629,10 +640,10 @@ class _MapPropiedadesState extends State<MapPropiedades> {
                         ),
                       ),
                     ),
-                    // Botón cerrar
+                    // Botón cerrar (más grande y visible)
                     Positioned(
-                      top: 8,
-                      right: 8,
+                      top: 12,
+                      right: 12,
                       child: GestureDetector(
                         behavior: HitTestBehavior.opaque,
                         onTap: () {
@@ -643,22 +654,22 @@ class _MapPropiedadesState extends State<MapPropiedades> {
                           });
                         },
                         child: Container(
-                          width: 28,
-                          height: 28,
+                          width: 26,
+                          height: 26,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 4,
-                                offset: Offset(0, 2),
+                                color: Colors.black.withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: Offset(0, 3),
                               ),
                             ],
                           ),
                           child: Icon(
-                            Icons.close,
-                            size: 18,
+                            Icons.close_rounded,
+                            size: 16,
                             color: Color(0xFF1F2937),
                           ),
                         ),

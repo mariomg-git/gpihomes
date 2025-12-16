@@ -2,6 +2,7 @@ import '/auth/firebase_auth/auth_util.dart';
 import '/backend/backend.dart';
 import '/components/a_modal_prospectos_opc_widget.dart';
 import '/components/amenitity_indicator/amenitity_indicator_widget.dart';
+import '/components/auth_gate/auth_gate_widget.dart';
 import '/components/modal_view_multiphotos_widget.dart';
 import '/custom_code/actions/index.dart';
 import '/custom_code/widgets/index.dart';
@@ -586,20 +587,49 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                                           size: 40.0,
                                                         ),
                                                         onPressed: () async {
-                                                          context.pushNamed(
-                                                            'aConsultarNombrePano',
-                                                            queryParameters: {
-                                                              'idProperty':
-                                                                  serializeParam(
-                                                                widget
-                                                                    .propertyRef
-                                                                    ?.reference
-                                                                    .id,
-                                                                ParamType
-                                                                    .String,
-                                                              ),
-                                                            }.withoutNulls,
-                                                          );
+                                                          if (loggedIn) {
+                                                            context.pushNamed(
+                                                              'aConsultarNombrePano',
+                                                              queryParameters: {
+                                                                'idProperty':
+                                                                    serializeParam(
+                                                                  widget
+                                                                      .propertyRef
+                                                                      ?.reference
+                                                                      .id,
+                                                                  ParamType
+                                                                      .String,
+                                                                ),
+                                                              }.withoutNulls,
+                                                            );
+                                                          } else {
+                                                            await showDialog(
+                                                              context: context,
+                                                              builder:
+                                                                  (dialogContext) {
+                                                                return Dialog(
+                                                                  elevation: 0,
+                                                                  insetPadding:
+                                                                      EdgeInsets
+                                                                          .zero,
+                                                                  backgroundColor:
+                                                                      Colors
+                                                                          .transparent,
+                                                                  alignment: const AlignmentDirectional(
+                                                                          0.0,
+                                                                          0.0)
+                                                                      .resolve(
+                                                                          Directionality.of(
+                                                                              context)),
+                                                                  child:
+                                                                      const AuthGateWidget(
+                                                                    message:
+                                                                        'Inicia sesión para ver los recorridos virtuales 360°',
+                                                                  ),
+                                                                );
+                                                              },
+                                                            );
+                                                          }
                                                         },
                                                       ),
                                                     ),
@@ -637,9 +667,54 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                               ],
                             ),
                           ),
+                          // Badge de Tipo de Propiedad (Renta/Venta)
                           Padding(
                             padding: const EdgeInsetsDirectional.fromSTEB(
-                                24.0, 4.0, 24.0, 0.0),
+                                24.0, 8.0, 24.0, 0.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.max,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsetsDirectional.fromSTEB(
+                                      12.0, 6.0, 12.0, 6.0),
+                                  decoration: BoxDecoration(
+                                    color: widget.propertyRef!.tipoPropiedad == 'Renta'
+                                        ? FlutterFlowTheme.of(context).primary
+                                        : FlutterFlowTheme.of(context).success,
+                                    borderRadius: BorderRadius.circular(20.0),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        widget.propertyRef!.tipoPropiedad == 'Renta'
+                                            ? Icons.key_rounded
+                                            : Icons.sell_rounded,
+                                        color: Colors.white,
+                                        size: 16.0,
+                                      ),
+                                      const SizedBox(width: 6.0),
+                                      Text(
+                                        widget.propertyRef!.tipoPropiedad ?? 'N/A',
+                                        style: FlutterFlowTheme.of(context)
+                                            .bodyMedium
+                                            .override(
+                                              fontFamily: 'Poiret One',
+                                              color: Colors.white,
+                                              fontSize: 13.0,
+                                              letterSpacing: 0.0,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsetsDirectional.fromSTEB(
+                                24.0, 8.0, 24.0, 0.0),
                             child: Row(
                               mainAxisSize: MainAxisSize.max,
                               children: [
@@ -1669,6 +1744,25 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                         size: 40.0,
                                       ),
                                       onPressed: () async {
+                                        // Verificar autenticación
+                                        if (!loggedIn) {
+                                          await showModalBottomSheet(
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.transparent,
+                                            enableDrag: false,
+                                            context: context,
+                                            builder: (context) {
+                                              return Padding(
+                                                padding: MediaQuery.viewInsetsOf(context),
+                                                child: const AuthGateWidget(
+                                                  message: '📱 Inicia sesión para contactar',
+                                                ),
+                                              );
+                                            },
+                                          );
+                                          return;
+                                        }
+                                        
                                         final propertyId = widget.propertyRef?.reference.id ?? '';
                                         final propertyName = widget.propertyRef?.propertyName ?? 'Propiedad';
                                         final propertyPrice = formatNumber(
@@ -1703,6 +1797,25 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                           size: 44.0,
                                         ),
                                         onPressed: () async {
+                                          // Verificar autenticación
+                                          if (!loggedIn) {
+                                            await showModalBottomSheet(
+                                              isScrollControlled: true,
+                                              backgroundColor: Colors.transparent,
+                                              enableDrag: false,
+                                              context: context,
+                                              builder: (context) {
+                                                return Padding(
+                                                  padding: MediaQuery.viewInsetsOf(context),
+                                                  child: const AuthGateWidget(
+                                                    message: '📱 Inicia sesión para compartir',
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                            return;
+                                          }
+                                          
                                           await showDialog(
                                             context: context,
                                             builder: (dialogContext) {
@@ -1741,6 +1854,25 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                           size: 44.0,
                                         ),
                                         onPressed: () async {
+                                          // Verificar autenticación
+                                          if (!loggedIn) {
+                                            await showModalBottomSheet(
+                                              isScrollControlled: true,
+                                              backgroundColor: Colors.transparent,
+                                              enableDrag: false,
+                                              context: context,
+                                              builder: (context) {
+                                                return Padding(
+                                                  padding: MediaQuery.viewInsetsOf(context),
+                                                  child: const AuthGateWidget(
+                                                    message: '💙 Inicia sesión para compartir',
+                                                  ),
+                                                );
+                                              },
+                                            );
+                                            return;
+                                          }
+                                          
                                           final propertyId = widget.propertyRef?.reference.id ?? '';
                                           final propertyName = widget.propertyRef?.propertyName ?? 'Propiedad';
                                           final propertyPrice = formatNumber(
@@ -1780,6 +1912,25 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                         size: 44.0,
                                       ),
                                       onPressed: () async {
+                                        // Verificar autenticación
+                                        if (!loggedIn) {
+                                          await showModalBottomSheet(
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.transparent,
+                                            enableDrag: false,
+                                            context: context,
+                                            builder: (context) {
+                                              return Padding(
+                                                padding: MediaQuery.viewInsetsOf(context),
+                                                child: const AuthGateWidget(
+                                                  message: '❤️ Inicia sesión para guardar favoritos',
+                                                ),
+                                              );
+                                            },
+                                          );
+                                          return;
+                                        }
+                                        
                                         await showDialog(
                                           context: context,
                                           builder: (alertDialogContext) {
@@ -1815,6 +1966,25 @@ class _PropertyDetailsWidgetState extends State<PropertyDetailsWidget>
                                 ),
                                 FFButtonWidget(
                                   onPressed: () async {
+                                    // Verificar autenticación
+                                    if (!loggedIn) {
+                                      await showModalBottomSheet(
+                                        isScrollControlled: true,
+                                        backgroundColor: Colors.transparent,
+                                        enableDrag: false,
+                                        context: context,
+                                        builder: (context) {
+                                          return Padding(
+                                            padding: MediaQuery.viewInsetsOf(context),
+                                            child: const AuthGateWidget(
+                                              message: '📝 Inicia sesión para continuar',
+                                            ),
+                                          );
+                                        },
+                                      );
+                                      return;
+                                    }
+                                    
                                     await showModalBottomSheet(
                                       isScrollControlled: true,
                                       backgroundColor: Colors.transparent,

@@ -1,28 +1,69 @@
 rules_version = '2';
 service firebase.storage {
   match /b/{bucket}/o {
+    // Función para validar tipo de archivo de imagen
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    // Función para validar tamaño de archivo (máximo 10MB)
+    function isValidSize() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+    
     // Regla por defecto - denegada
     match /{allPaths=**} {
       allow read: if true;  // Permitir lectura pública
-      allow write: if false;
+      allow write: if false;  // Denegar escritura por defecto
     }
     
-    // Archivos de usuarios autenticados
+    // Archivos de usuarios autenticados - fotos de perfil y documentos personales
     match /users/{userId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read: if true;  // Lectura pública
+      allow write: if request.auth != null 
+                   && request.auth.uid == userId
+                   && isImage()
+                   && isValidSize();
     }
     
     // Imágenes de propiedades - permitir lectura pública y escritura autenticada
     match /properties/{propertyId}/{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read: if true;  // Lectura pública para ver propiedades
+      allow write: if request.auth != null
+                   && isImage()
+                   && isValidSize();
     }
     
-    // Imágenes generales - permitir lectura pública
+    // Carpeta propiedades - para imágenes de panoramas 360°
+    match /propiedades/{allPaths=**} {
+      allow read: if true;  // Lectura pública
+      allow write: if request.auth != null
+                   && isImage()
+                   && isValidSize();
+    }
+    
+    // Tours virtuales 360° - permitir lectura pública y escritura autenticada
+    match /virtualTours/{tourId}/{allPaths=**} {
+      allow read: if true;  // Lectura pública para visualizar tours
+      allow write: if request.auth != null
+                   && isImage()
+                   && isValidSize();
+    }
+    
+    // Imágenes generales - permitir lectura pública y escritura autenticada
     match /images/{allPaths=**} {
+      allow read: if true;  // Lectura pública
+      allow write: if request.auth != null
+                   && isImage()
+                   && isValidSize();
+    }
+    
+    // Niveles de tours virtuales
+    match /niveles/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+                   && isImage()
+                   && isValidSize();
     }
   }
 }

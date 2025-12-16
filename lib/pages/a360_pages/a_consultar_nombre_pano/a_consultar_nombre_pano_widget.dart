@@ -67,6 +67,16 @@ class _AConsultarNombrePanoWidgetState
                 context.pop();
               },
             ),
+            title: Text(
+              FFLocalizations.of(context).getText(
+                'tour_list' /* Tours Virtuales */,
+              ),
+              style: FlutterFlowTheme.of(context).headlineMedium.override(
+                    fontFamily: 'Poiret One',
+                    fontSize: 22.0,
+                    letterSpacing: 0.0,
+                  ),
+            ),
             actions: const [],
             centerTitle: true,
             elevation: 2.0,
@@ -208,6 +218,41 @@ class _AConsultarNombrePanoWidgetState
                                 List<VirtualToursRecord>
                                     listViewVirtualToursRecordList =
                                     snapshot.data!;
+                                
+                                // Estado vacío
+                                if (listViewVirtualToursRecordList.isEmpty) {
+                                  return Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.panorama_photosphere_outlined,
+                                          size: 100,
+                                          color: FlutterFlowTheme.of(context).secondaryText,
+                                        ),
+                                        const SizedBox(height: 16),
+                                        Text(
+                                          'No hay tours virtuales',
+                                          style: FlutterFlowTheme.of(context).headlineSmall.override(
+                                                fontFamily: 'Poiret One',
+                                                letterSpacing: 0.0,
+                                              ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Aún no se han creado tours 360° para esta propiedad',
+                                          textAlign: TextAlign.center,
+                                          style: FlutterFlowTheme.of(context).bodyMedium.override(
+                                                fontFamily: 'Poiret One',
+                                                letterSpacing: 0.0,
+                                                color: FlutterFlowTheme.of(context).secondaryText,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
 
                                 return ListView.builder(
                                   padding: EdgeInsets.zero,
@@ -219,78 +264,246 @@ class _AConsultarNombrePanoWidgetState
                                     final listViewVirtualToursRecord =
                                         listViewVirtualToursRecordList[
                                             listViewIndex];
-                                    return InkWell(
-                                      splashColor: Colors.transparent,
-                                      focusColor: Colors.transparent,
-                                      hoverColor: Colors.transparent,
-                                      highlightColor: Colors.transparent,
-                                      onTap: () async {
-                                        await showModalBottomSheet(
-                                          isScrollControlled: true,
-                                          backgroundColor: Colors.transparent,
-                                          enableDrag: false,
-                                          context: context,
-                                          builder: (context) {
-                                            return Padding(
-                                              padding: MediaQuery.viewInsetsOf(
-                                                  context),
-                                              child: SizedBox(
-                                                height:
-                                                    MediaQuery.sizeOf(context)
-                                                            .height *
-                                                        1.0,
-                                                child: AModalVerPanosWidget(
-                                                  idVirtualTour:
-                                                      listViewVirtualToursRecord
-                                                          .reference.id,
+                                    
+                                    // Verificar si es un tour nuevo (últimos 7 días)
+                                    final isNew = listViewVirtualToursRecord.hasAFechaCreacion() &&
+                                        listViewVirtualToursRecord.aFechaCreacion!
+                                            .isAfter(DateTime.now().subtract(const Duration(days: 7)));
+                                    
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16.0,
+                                        vertical: 8.0,
+                                      ),
+                                      child: InkWell(
+                                        splashColor: Colors.transparent,
+                                        focusColor: Colors.transparent,
+                                        hoverColor: Colors.transparent,
+                                        highlightColor: Colors.transparent,
+                                        onTap: () async {
+                                          await showModalBottomSheet(
+                                            isScrollControlled: true,
+                                            backgroundColor: Colors.transparent,
+                                            enableDrag: false,
+                                            context: context,
+                                            builder: (context) {
+                                              return Padding(
+                                                padding: MediaQuery.viewInsetsOf(
+                                                    context),
+                                                child: SizedBox(
+                                                  height:
+                                                      MediaQuery.sizeOf(context)
+                                                              .height *
+                                                          1.0,
+                                                  child: AModalVerPanosWidget(
+                                                    idVirtualTour:
+                                                        listViewVirtualToursRecord
+                                                            .reference.id,
+                                                  ),
                                                 ),
+                                              );
+                                            },
+                                          ).then((value) => safeSetState(() {}));
+                                        },
+                                        child: Card(
+                                          elevation: 4,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(16),
+                                          ),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              borderRadius: BorderRadius.circular(16),
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  FlutterFlowTheme.of(context).primary.withOpacity(0.1),
+                                                  FlutterFlowTheme.of(context).secondary.withOpacity(0.05),
+                                                ],
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
                                               ),
-                                            );
-                                          },
-                                        ).then((value) => safeSetState(() {}));
-                                      },
-                                      child: Material(
-                                        color: Colors.transparent,
-                                        child: ListTile(
-                                          title: Text(
-                                            listViewVirtualToursRecord.nombre,
-                                            textAlign: TextAlign.center,
-                                            style: FlutterFlowTheme.of(context)
-                                                .headlineSmall
-                                                .override(
-                                                  fontFamily: 'Poiret One',
-                                                  fontSize: 40.0,
-                                                  letterSpacing: 0.0,
-                                                ),
-                                          ),
-                                          subtitle: Text(
-                                            dateTimeFormat(
-                                              "d/M/y",
-                                              listViewVirtualToursRecord
-                                                  .aFechaCreacion!,
-                                              locale:
-                                                  FFLocalizations.of(context)
-                                                      .languageCode,
                                             ),
-                                            textAlign: TextAlign.center,
-                                            style: FlutterFlowTheme.of(context)
-                                                .headlineSmall
-                                                .override(
-                                                  fontFamily: 'Poiret One',
-                                                  fontSize: 25.0,
-                                                  letterSpacing: 0.0,
-                                                ),
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(16.0),
+                                              child: Row(
+                                                children: [
+                                                  // Icono decorativo
+                                                  Container(
+                                                    width: 80,
+                                                    height: 80,
+                                                    decoration: BoxDecoration(
+                                                      color: FlutterFlowTheme.of(context).primary.withOpacity(0.2),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                    ),
+                                                    child: Icon(
+                                                      Icons.panorama_photosphere,
+                                                      size: 40,
+                                                      color: FlutterFlowTheme.of(context).primary,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 16),
+                                                  // Información del tour
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Row(
+                                                          children: [
+                                                            Expanded(
+                                                              child: Text(
+                                                                listViewVirtualToursRecord.nombre,
+                                                                style: FlutterFlowTheme.of(context)
+                                                                    .headlineSmall
+                                                                    .override(
+                                                                      fontFamily: 'Poiret One',
+                                                                      fontSize: 20.0,
+                                                                      letterSpacing: 0.0,
+                                                                      fontWeight: FontWeight.bold,
+                                                                    ),
+                                                              ),
+                                                            ),
+                                                            if (isNew)
+                                                              Container(
+                                                                padding: const EdgeInsets.symmetric(
+                                                                  horizontal: 8,
+                                                                  vertical: 4,
+                                                                ),
+                                                                decoration: BoxDecoration(
+                                                                  color: FlutterFlowTheme.of(context).error,
+                                                                  borderRadius: BorderRadius.circular(12),
+                                                                ),
+                                                                child: Text(
+                                                                  'NUEVO',
+                                                                  style: TextStyle(
+                                                                    fontSize: 10,
+                                                                    color: Colors.white,
+                                                                    fontWeight: FontWeight.bold,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                          ],
+                                                        ),
+                                                        const SizedBox(height: 8),
+                                                        Row(
+                                                          children: [
+                                                            Icon(
+                                                              Icons.calendar_today,
+                                                              size: 16,
+                                                              color: FlutterFlowTheme.of(context).secondaryText,
+                                                            ),
+                                                            const SizedBox(width: 4),
+                                                            Text(
+                                                              dateTimeFormat(
+                                                                "relative",
+                                                                listViewVirtualToursRecord
+                                                                    .aFechaCreacion!,
+                                                                locale:
+                                                                    FFLocalizations.of(context)
+                                                                        .languageCode,
+                                                              ),
+                                                              style: FlutterFlowTheme.of(context)
+                                                                  .bodyMedium
+                                                                  .override(
+                                                                    fontFamily: 'Poiret One',
+                                                                    fontSize: 13.0,
+                                                                    letterSpacing: 0.0,
+                                                                    color: FlutterFlowTheme.of(context).secondaryText,
+                                                                  ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        const SizedBox(height: 8),
+                                                        // Contador de panoramas
+                                                        StreamBuilder<List<NivelesRecord>>(
+                                                          stream: queryNivelesRecord(
+                                                            parent: listViewVirtualToursRecord.reference,
+                                                          ),
+                                                          builder: (context, nivelesSnapshot) {
+                                                            int panoramaCount = 0;
+                                                            if (nivelesSnapshot.hasData) {
+                                                              panoramaCount = nivelesSnapshot.data!.length;
+                                                            }
+                                                            return Row(
+                                                              children: [
+                                                                Container(
+                                                                  padding: const EdgeInsets.symmetric(
+                                                                    horizontal: 12,
+                                                                    vertical: 6,
+                                                                  ),
+                                                                  decoration: BoxDecoration(
+                                                                    color: FlutterFlowTheme.of(context).accent1,
+                                                                    borderRadius: BorderRadius.circular(20),
+                                                                  ),
+                                                                  child: Row(
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      Icon(
+                                                                        Icons.threesixty,
+                                                                        size: 16,
+                                                                        color: FlutterFlowTheme.of(context).primary,
+                                                                      ),
+                                                                      const SizedBox(width: 4),
+                                                                      Text(
+                                                                        'Recorrido Virtual',
+                                                                        style: TextStyle(
+                                                                          fontSize: 12,
+                                                                          color: FlutterFlowTheme.of(context).primary,
+                                                                          fontWeight: FontWeight.w600,
+                                                                        ),
+                                                                      ),
+                                                                    ],
+                                                                  ),
+                                                                ),
+                                                                if (panoramaCount > 0) const SizedBox(width: 8),
+                                                                if (panoramaCount > 0) Container(
+                                                                    padding: const EdgeInsets.symmetric(
+                                                                      horizontal: 12,
+                                                                      vertical: 6,
+                                                                    ),
+                                                                    decoration: BoxDecoration(
+                                                                      color: FlutterFlowTheme.of(context).secondaryBackground,
+                                                                      borderRadius: BorderRadius.circular(20),
+                                                                      border: Border.all(
+                                                                        color: FlutterFlowTheme.of(context).alternate,
+                                                                      ),
+                                                                    ),
+                                                                    child: Row(
+                                                                      mainAxisSize: MainAxisSize.min,
+                                                                      children: [
+                                                                        Icon(
+                                                                          Icons.panorama,
+                                                                          size: 14,
+                                                                          color: FlutterFlowTheme.of(context).secondaryText,
+                                                                        ),
+                                                                        const SizedBox(width: 4),
+                                                                        Text(
+                                                                          '$panoramaCount ${panoramaCount == 1 ? "panorama" : "panoramas"}',
+                                                                          style: TextStyle(
+                                                                            fontSize: 12,
+                                                                            color: FlutterFlowTheme.of(context).secondaryText,
+                                                                            fontWeight: FontWeight.w500,
+                                                                          ),
+                                                                        ),
+                                                                      ],
+                                                                    ),
+                                                                  ),
+                                                              ],
+                                                            );
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  // Flecha
+                                                  Icon(
+                                                    Icons.arrow_forward_ios,
+                                                    color: FlutterFlowTheme.of(context)
+                                                        .primary,
+                                                    size: 24.0,
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                           ),
-                                          trailing: Icon(
-                                            Icons.arrow_forward_ios,
-                                            color: FlutterFlowTheme.of(context)
-                                                .secondaryText,
-                                            size: 20.0,
-                                          ),
-                                          tileColor:
-                                              FlutterFlowTheme.of(context)
-                                                  .secondaryBackground,
-                                          dense: false,
                                         ),
                                       ),
                                     );
