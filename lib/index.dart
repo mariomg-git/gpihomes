@@ -48,6 +48,8 @@ export '/pages/a_profile/profile_pruebas/profile_pruebas_widget.dart'
     show ProfilePruebasWidget;
 export '/pages/a_home_pages/home_page_comprar/home_page_comprar_widget.dart'
     show HomePageComprarWidget;
+export '/pages/admin_users_page/admin_users_page_widget.dart'
+    show AdminUsersPageWidget;
 export '/pages/a_home_pages/home_page_publicar/home_page_publicar_widget.dart'
     show HomePagePublicarWidget;
 export '/pages/a360_pages/create_property360/create_property360_widget.dart'

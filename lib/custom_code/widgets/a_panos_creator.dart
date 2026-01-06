@@ -10,10 +10,6 @@ import 'package:flutter/material.dart';
 // Begin custom widget code
 // DO NOT REMOVE OR MODIFY THE CODE ABOVE!
 
-import 'index.dart'; // Imports other custom widgets
-
-import 'index.dart'; // Imports other custom widgets
-
 import 'package:multi_image_picker_view/multi_image_picker_view.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
@@ -21,9 +17,9 @@ import 'package:image_picker/image_picker.dart';
 import 'package:panorama/panorama.dart';
 import "dart:math";
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:io';
-import 'package:image_picker/image_picker.dart';
 
 String varImageSelect = '';
 String varIdVirtualTour = '';
@@ -54,6 +50,20 @@ class _APanosCreatorState extends State<APanosCreator> {
   String idPrincipal = '';
   bool varOcultar = false;
   bool seHizoPrincipal = false;
+  
+  // Variable estática para acceder desde funciones globales
+  static _APanosCreatorState? _uploadState;
+  
+  // Variables para tracking de uploads
+  bool _isUploading = false;
+  int _uploadingCount = 0;
+  int _totalToUpload = 0;
+  double _uploadProgress = 0.0;
+  Map<String, double> _imageUploadProgress = {};
+  Map<String, String> _uploadErrors = {};
+  int _currentStep = 0; // 0: Agregar imágenes, 1: Marcar inicio, 2: Crear hotspots, 3: Listo
+  int _totalImages = 0;
+  int _totalHotspots = 0;
 
   final _panoramaModalController = GlobalKey<ScaffoldState>();
 
@@ -79,6 +89,56 @@ class _APanosCreatorState extends State<APanosCreator> {
   void initState() {
     super.initState();
     varIdVirtualTour = widget.idVirtualTour!;
+    _uploadState = this; // Asignar referencia al estado
+    _updateImageCount();
+    
+    // Mostrar diálogo de bienvenida
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _showWelcomeDialog();
+    });
+  }
+  
+  @override
+  void dispose() {
+    _uploadState = null; // Limpiar referencia
+    super.dispose();
+  }
+  
+  void _updateImageCount() {
+    setState(() {
+      _totalImages = controller.images.length;
+      _totalHotspots = hotspotsArray.where((h) => h.latitude != null).length;
+      
+      // Actualizar paso actual según progreso
+      if (_totalImages == 0) {
+        _currentStep = 0;
+      } else if (!seHizoPrincipal) {
+        _currentStep = 1;
+      } else if (_totalHotspots == 0) {
+        _currentStep = 2;
+      } else {
+        _currentStep = 3;
+      }
+    });
+  }
+  
+  void _showSnackBar(String message, {Color? backgroundColor, IconData? icon}) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            if (icon != null) ...[
+              Icon(icon, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+            ],
+            Expanded(child: Text(message)),
+          ],
+        ),
+        backgroundColor: backgroundColor ?? Colors.blue,
+        duration: Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   void onViewChanged(longitude, latitude, tilt) {
@@ -173,6 +233,7 @@ class _APanosCreatorState extends State<APanosCreator> {
                           element.latitude == lat && element.longitude == lon);
                     });
                     await deleteHotspotFromFirestore(lat, lon);
+                    _updateImageCount();
                   }
                 },
               ),
@@ -180,11 +241,23 @@ class _APanosCreatorState extends State<APanosCreator> {
           ],
         ),
       ));
+      _updateImageCount();
     });
+    
+    _showSnackBar(
+      'Hotspot agregado. Selecciona la imagen destino',
+      backgroundColor: Colors.blue,
+      icon: Icons.add_location_alt,
+    );
   }
 
   Future<List<Map<String, dynamic>>> getHotspotsFire(String idTourSpots) async {
     try {
+      // Limpiar hotspots actuales antes de cargar nuevos
+      setState(() {
+        hotspotsArray.clear();
+      });
+      
       // Access Firestore instance
       final firestore = FirebaseFirestore.instance;
 
@@ -202,22 +275,36 @@ class _APanosCreatorState extends State<APanosCreator> {
       if (docSnapshot.exists) {
         // Extract the data map
         final data = docSnapshot.data() as Map<String, dynamic>;
-        // Extract the 'hotspots' array (assuming it's an array)
+        
+        // Verificar si tiene hotspots
+        if (!data.containsKey('hotspots')) {
+          print('Documento encontrado pero sin hotspots');
+          return [];
+        }
+        
+        // Extract the 'hotspots' array
         final hotspots = data['hotspots'] as List<dynamic>;
-        // Convert each hotspot to a map for clarity (optional)
+        
+        // Convert each hotspot to a map and add to UI
         final processedHotspots = hotspots.map((hotspot) {
-          //idTour = hotspot['idTour'] as String;
           addHotspot(hotspot['lat'], hotspot['lon']);
           return hotspot as Map<String, dynamic>;
         }).toList();
-        return processedHotspots; // Return the processed array
+        
+        print('${hotspots.length} hotspots cargados exitosamente');
+        return processedHotspots;
       } else {
         print('Document not found in Firestore');
-        return []; // Return empty array if document doesn't exist
+        return [];
       }
     } catch (error) {
-      print('Error no tiene hotspots: $error');
-      return []; // Return empty array on error
+      print('Error cargando hotspots: $error');
+      _showSnackBar(
+        'Error al cargar hotspots: ${error.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
+      );
+      return [];
     }
   }
 
@@ -286,6 +373,9 @@ class _APanosCreatorState extends State<APanosCreator> {
 
   Future<void> deleteImageFromFirestore(String imageId) async {
     try {
+      // Verificar si es la imagen principal antes de eliminar
+      final wasMainImage = (imageId == idPrincipal);
+      
       // Access Firestore instance
       final firestore = FirebaseFirestore.instance;
 
@@ -300,9 +390,30 @@ class _APanosCreatorState extends State<APanosCreator> {
       await docRef.delete();
       await deleteHotspotsForImage(
           imageId); // Eliminate hotspots after deleting the image
-      print('Document deleted from Firestore');
+      
+      // Si era la imagen principal, resetear estado
+      if (wasMainImage) {
+        setState(() {
+          idPrincipal = '';
+          seHizoPrincipal = false;
+          varOcultar = false;
+        });
+        _showSnackBar(
+          '⚠️ Imagen de inicio eliminada. Marca otra como inicio.',
+          backgroundColor: Colors.orange[700]!,
+          icon: Icons.warning,
+        );
+      }
+      
+      _updateImageCount();
+      print('Document deleted from Firestore: $imageId');
     } catch (error) {
       print('Error deleting document from Firestore: $error');
+      _showSnackBar(
+        'Error al eliminar imagen: ${error.toString()}',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
+      );
     }
   }
 
@@ -355,13 +466,7 @@ class _APanosCreatorState extends State<APanosCreator> {
         false;
 
     if (shouldDelete) {
-      //await deleteImageFromFirestore(imageFile.id);
       await deleteImageFromFirestore(imageFile);
-      // if (imageFile is AssetEntity) {
-      //   await deleteImageFromFirestore(imageFile.id);
-      // } else if (imageFile is XFile) {
-      //   await deleteImageFromFirestore(imageFile.name);
-      // }
     }
   }
 
@@ -372,7 +477,17 @@ class _APanosCreatorState extends State<APanosCreator> {
       animSpeed: 0.0,
       //sensorControl: SensorControl.Orientation,
       onViewChanged: onViewChanged,
-      onTap: (longitude, latitude, tilt) => addHotspot(latitude, longitude),
+      onTap: (longitude, latitude, tilt) {
+        if (!seHizoPrincipal) {
+          _showSnackBar(
+            '⚠️ Primero marca una imagen de inicio',
+            backgroundColor: Colors.orange[700]!,
+            icon: Icons.warning,
+          );
+          return;
+        }
+        addHotspot(latitude, longitude);
+      },
       child: Image.network(images[_currentIndex]),
       hotspots: hotspotsArray,
     );
@@ -380,9 +495,24 @@ class _APanosCreatorState extends State<APanosCreator> {
       appBar: AppBar(
         title: const Text('360 Creator'),
         backgroundColor: Colors.black,
+        bottom: PreferredSize(
+          preferredSize: Size.fromHeight(120),
+          child: Column(
+            children: [
+              // Stepper visual
+              _buildStepperIndicator(),
+              SizedBox(height: 8),
+              // Panel de estado
+              _buildStatusPanel(),
+              SizedBox(height: 8),
+            ],
+          ),
+        ),
       ),
       body: Column(
         children: [
+          // Loader general si está subiendo
+          if (_isUploading) _buildUploadProgress(),
           Expanded(
             // Make panorama take up 50% of the height
             flex: 1,
@@ -446,34 +576,60 @@ class _APanosCreatorState extends State<APanosCreator> {
                 final filename = imageFile.name ??
                     'Unknown'; // Extract filename and extension
 
-                return Stack(
-                  children: [
-                    Positioned.fill(
-                      child: InkWell(
-                        onTap: () {
-                          if (seHizoPrincipal) {
-                            print(
-                                'borrar hotspots: ' + hotspotsArray.toString());
-                            setState(() {
-                              hotspotsArray.clear();
-                            });
-                            getHotspotsFire(imageFile.extension);
-                            setState(() {});
-                            print('.extension usado para enviar id:' +
-                                imageFile
-                                    .extension); //AQUI APROBECHE EL CAMPO .extension, PARA GUARDAR EL ID
-                            varImageSelect = imageFile.extension;
-                            loadPanoramaImage(imageFile
-                                .path!); // Imprimir el nombre de la imagen con extensión
-                          } else {
-                            showBasicDialog(context);
-                          }
-                        },
-
-                        child: Image.network(imageFile
-                            .path!), //ImageFileView(imageFile: imageFile),
+                return Listener(
+                  onPointerDown: (event) {
+                    print('========================================');
+                    print('🔥 CLIC EN IMAGEN DETECTADO (Listener)');
+                    print('Nombre: ${imageFile.name}');
+                    print('Extension (ID): ${imageFile.extension}');
+                    print('Path: ${imageFile.path}');
+                    print('seHizoPrincipal: $seHizoPrincipal');
+                    print('Posición del clic: ${event.localPosition}');
+                    print('========================================');
+                    
+                    if (seHizoPrincipal) {
+                      print('✅ Ya hay imagen de inicio, cargando imagen seleccionada...');
+                      print('ID de imagen: ${imageFile.extension}');
+                      print('URL: ${imageFile.path}');
+                      
+                      print('🔄 Iniciando setState...');
+                      // Actualizar todo el estado de una vez
+                      setState(() {
+                        print('  - Limpiando ${hotspotsArray.length} hotspots...');
+                        // Limpiar hotspots actuales
+                        hotspotsArray.clear();
+                        
+                        print('  - Actualizando varImageSelect a: ${imageFile.extension}');
+                        // Actualizar la imagen seleccionada
+                        varImageSelect = imageFile.extension;
+                        
+                        print('  - Llamando a loadPanoramaImage con: ${imageFile.path}');
+                        // Cargar la nueva imagen en el visor
+                        loadPanoramaImage(imageFile.path!);
+                      });
+                      print('✅ setState completado');
+                      
+                      print('🔄 Obteniendo hotspots de Firebase...');
+                      // Obtener hotspots de Firebase (asíncrono)
+                      getHotspotsFire(imageFile.extension);
+                      print('✅ Petición de hotspots enviada');
+                    } else {
+                      print('⚠️ No hay imagen de inicio, mostrando diálogo...');
+                      showBasicDialog(context);
+                      print('✅ Diálogo mostrado');
+                    }
+                    
+                    print('========================================');
+                  },
+                  child: Stack(
+                    children: [
+                      // Imagen de fondo
+                      Positioned.fill(
+                        child: Image.network(
+                          imageFile.path!,
+                          fit: BoxFit.cover,
+                        ),
                       ),
-                    ),
                     if (idPrincipal == imageFile.extension)
                       Positioned(
                         top: 4,
@@ -549,20 +705,9 @@ class _APanosCreatorState extends State<APanosCreator> {
                           ),
                         ),
                       ),
-                    // Positioned(
-                    //   bottom: 2,
-                    //   left: 5,
-                    //   child: Text(
-                    //     filename,
-                    //     style: const TextStyle(
-                    //       fontSize: 12,
-                    //       color: Colors.white,
-                    //       fontWeight: FontWeight.bold,
-                    //     ),
-                    //   ),
-                    // ),
                   ],
-                );
+                ),
+              );
               },
               initialWidget: SizedBox(
                 height: 170,
@@ -581,26 +726,53 @@ class _APanosCreatorState extends State<APanosCreator> {
                             const SizedBox(
                                 height: 8), // Add spacing between buttons
 
-                            const SizedBox(
-                                height: 50), // Add spacing between buttons
-                            ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors
-                                    .black, // Cambia el color de fondo a negro
-                              ),
-                              onPressed: () {
-                                controller.pickImages();
-                              },
-                              child: const Column(
-                                mainAxisSize: MainAxisSize
-                                    .min, // Para ajustar el tamaño del botón al contenido
-                                children: [
-                                  Text('INICIA AQUI'),
-                                  Text('Agregando Imagenes'),
-                                  Icon(Icons.satellite_sharp),
-                                ],
+                            const SizedBox(height: 20),
+                            Container(
+                              margin: const EdgeInsets.symmetric(horizontal: 20),
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.blue[700],
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 4,
+                                ),
+                                onPressed: () {
+                                  controller.pickImages();
+                                },
+                                child: const Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_photo_alternate, size: 28),
+                                    SizedBox(width: 12),
+                                    Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'AGREGAR IMAGENES',
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          'Selecciona tus panoramas 360°',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.normal,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                               ),
                             ),
+                            const SizedBox(height: 20),
                           ],
                         ),
                       ),
@@ -647,15 +819,43 @@ class _APanosCreatorState extends State<APanosCreator> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text('Información'),
-          content: Text(
-              'Debes Seleccionar una Imagen de Inicio, dando clic en el boton de Inicio.'),
+          icon: Icon(Icons.warning_amber, color: Colors.orange, size: 48),
+          title: Text('⚠️ Imagen de Inicio Requerida'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Antes de continuar, debes seleccionar una imagen de inicio para tu recorrido virtual.',
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info, color: Colors.blue, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Toca el botón "Inicio" en la imagen que deseas usar como punto de partida',
+                        style: TextStyle(fontSize: 12, color: Colors.blue[900]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           actions: <Widget>[
             TextButton(
-              child: Text('ACEPTAR'),
+              child: Text('ENTENDIDO'),
               onPressed: () {
-                // Realiza alguna acción aquí
-                Navigator.of(context).pop(); // Cierra el diálogo
+                Navigator.of(context).pop();
               },
             ),
           ],
@@ -687,57 +887,103 @@ class _APanosCreatorState extends State<APanosCreator> {
       setState(() {
         idPrincipal = setPrincipal;
         varOcultar = true;
+        seHizoPrincipal = true;
       });
+      
+      _updateImageCount();
 
       FFAppState().globalVar1 = setPrincipal;
 
+      _showSnackBar(
+        '✓ Imagen de inicio configurada correctamente',
+        backgroundColor: Colors.green[700]!,
+        icon: Icons.check_circle,
+      );
+
       print('Documento guardado en Firestore');
+      
+      // Diálogo de confirmación mejorado
+      await showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          icon: Icon(Icons.star, color: Colors.amber, size: 48),
+          title: Text('🎯 ¡Imagen de Inicio Configurada!'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Esta será la primera imagen que verán los visitantes al iniciar el recorrido virtual.',
+                textAlign: TextAlign.center,
+              ),
+              SizedBox(height: 16),
+              Container(
+                padding: EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_forward, color: Colors.green, size: 20),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Siguiente paso: Toca en las imágenes para crear conexiones (hotspots)',
+                        style: TextStyle(fontSize: 12, color: Colors.green[900]),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(true);
+              },
+              child: Text('CONTINUAR'),
+            ),
+          ],
+        ),
+      );
     } catch (error) {
       print('Error al guardar el documento en Firestore: $error');
+      _showSnackBar(
+        '❌ Error al configurar imagen de inicio: $error',
+        backgroundColor: Colors.red,
+        icon: Icons.error,
+      );
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Guardado Correctamente'),
-      ),
-    );
-
-    bool confirm = await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Se marco imagen de Inicio Correctamente'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(true); // Yes
-            },
-            child: Text('Ok'),
-          ),
-        ],
-      ),
-    );
   }
 
   void loadPanoramaImage(String imageName) {
-    print('load Panorama: ' + imageName);
-    images.clear();
-    images.add(imageName);
-    //print(images.toString());
-
-    // Find the index of the selected image in the images list
-    int selectedIndex = images.indexOf(imageName);
-    if (selectedIndex != -1) {
-      setState(() {
-        _currentIndex = selectedIndex;
-
-        //print(_currentIndex);
-      });
-    }
+    print('📸 loadPanoramaImage() INICIO');
+    print('  Parámetro imageName: $imageName');
+    
+    setState(() {
+      // Optimizado: siempre limpiar y agregar, índice siempre será 0
+      if (images.isEmpty || images.first != imageName) {
+        images.clear();
+        images.add(imageName);
+        print('  ✅ Imagen actualizada en lista');
+      }
+      _currentIndex = 0; // Siempre será 0
+      print('  ✅ _currentIndex actualizado a: $_currentIndex');
+    });
+    
+    print('📸 loadPanoramaImage() FIN');
   }
 
-  void selectPanorama(double lat, double lon) {
-    showModalBottomSheet(
+  void selectPanorama(double lat, double lon) async {
+    // Marcar que estamos esperando selección
+    bool hotspotSaved = false;
+    
+    final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      isDismissible: true,
       builder: (context) => Scaffold(
         key: _multiImagePickerModalController,
         appBar: AppBar(
@@ -770,140 +1016,106 @@ class _APanosCreatorState extends State<APanosCreator> {
             print('pathFile: ' + imageFile.path.toString());
             final filename =
                 imageFile.name ?? 'Unknown'; // Extract filename and extension
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: InkWell(
-                    onTap: () async {
-                      print('id-documento: ' + imageFile.extension);
-                      // Mostrar diálogo de confirmación
-                      bool confirm = await showDialog(
-                        context: context,
-                        builder: (context) => AlertDialog(
-                          title: Text('Confirm Save'),
-                          content: Text('Deseas guardar estos cambios?'),
-                          actions: [
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop(false); // No
-                              },
-                              child: Text('Cancelar'),
-                            ),
-                            TextButton(
-                              onPressed: () {
-                                Navigator.of(context).pop(true); // Yes
-                              },
-                              child: Text('Guardar'),
-                            ),
-                          ],
-                        ),
-                      );
-
-                      // Si el usuario confirma, guardar en Firebase
-                      if (confirm == true) {
-                        print(
-                            'Coords ${lat.toStringAsFixed(5)}, ${lon.toStringAsFixed(5)}');
-                        print('Nombre de la Imagen:' +
-                            imageFile
-                                .path!); // Imprimir el nombre de la imagen con extensión
-                        try {
-                          // Instancia de Firestore
-                          FirebaseFirestore firestore =
-                              FirebaseFirestore.instance;
-                          final now = Timestamp.fromDate(DateTime.now());
-
-                          // Documento a ser guardado
-                          Map<String, dynamic> data = {
-                            'aFechaActualizacion': now,
-                            //'imageTour': imageFile.path!,
-                            'hotspots': FieldValue.arrayUnion([
-                              {
-                                'lat': lat,
-                                'lon': lon,
-                                'idTour': imageFile.extension,
-                                'zLink': imageFile.path!,
-                              }
-                            ])
-                          };
-
-                          // Guardar el documento en Firestore
-                          await firestore
-                              .collection('virtualTours')
-                              .doc(widget.idVirtualTour)
-                              .collection('tours')
-                              .doc(varImageSelect)
-                              .update(data);
-
-                          print('Documento guardado en Firestore');
-                        } catch (error) {
-                          print(
-                              'Error al guardar el documento en Firestore: $error');
-                        }
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Valor Guardado'),
-                          ),
-                        );
-
-                        bool confirm = await showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text('Guardado Correctamente'),
-                            actions: [
-                              TextButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop(true); // Yes
-                                },
-                                child: Text('Ok'),
-                              ),
-                            ],
-                          ),
-                        );
-                        // Cierra el modal
-                        Navigator.of(context).pop();
-                      }
-                    },
-                    child: Image.network(
-                        imageFile.path!), //ImageFileView(imageFile: imageFile),
+            return Listener(
+              onPointerDown: (event) async {
+                print('🎯 CLIC EN IMAGEN DESTINO DETECTADO');
+                print('id-documento: ' + imageFile.extension);
+                // Mostrar diálogo de confirmación
+                bool confirm = await showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text('Confirm Save'),
+                    content: Text('Deseas guardar estos cambios?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(false); // No
+                        },
+                        child: Text('Cancelar'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(context).pop(true); // Yes
+                        },
+                        child: Text('Guardar'),
+                      ),
+                    ],
                   ),
-                ),
-                // Positioned(
-                //   top: 4,
-                //   right: 4,
-                //   child: DraggableItemInkWell(
-                //     borderRadius: BorderRadius.circular(2),
-                //     onPressed: () => controller.removeImage(imageFile),
-                //     child: Container(
-                //       padding: const EdgeInsets.all(5),
-                //       decoration: BoxDecoration(
-                //         color: Theme.of(context)
-                //             .colorScheme
-                //             .secondary
-                //             .withOpacity(0.4),
-                //         shape: BoxShape.circle,
-                //       ),
-                //       child: Icon(
-                //         Icons.delete_forever_rounded,
-                //         size: 18,
-                //         color: Theme.of(context).colorScheme.background,
-                //       ),
-                //     ),
-                //   ),
-                // ),
-                // Positioned(
-                //   bottom: 2,
-                //   left: 5,
-                //   child: Text(
-                //     filename,
-                //     style: const TextStyle(
-                //       fontSize: 10,
-                //       color: Colors.white,
-                //       fontWeight: FontWeight.bold,
-                //     ),
-                //   ),
-                // ),
+                );
+
+                // Si el usuario confirma, guardar en Firebase
+                if (confirm == true) {
+                  print(
+                      'Coords ${lat.toStringAsFixed(5)}, ${lon.toStringAsFixed(5)}');
+                  print('Nombre de la Imagen:' +
+                      imageFile
+                          .path!); // Imprimir el nombre de la imagen con extensión
+                  try {
+                    // Instancia de Firestore
+                    FirebaseFirestore firestore =
+                        FirebaseFirestore.instance;
+                    final now = Timestamp.fromDate(DateTime.now());
+
+                    // Documento a ser guardado
+                    Map<String, dynamic> data = {
+                      'aFechaActualizacion': now,
+                      //'imageTour': imageFile.path!,
+                      'hotspots': FieldValue.arrayUnion([
+                        {
+                          'lat': lat,
+                          'lon': lon,
+                          'idTour': imageFile.extension,
+                          'zLink': imageFile.path!,
+                        }
+                      ])
+                    };
+
+                    // Guardar el documento en Firestore
+                    await firestore
+                        .collection('virtualTours')
+                        .doc(widget.idVirtualTour)
+                        .collection('tours')
+                        .doc(varImageSelect)
+                        .update(data);
+
+                    print('Documento guardado en Firestore');
+                  } catch (error) {
+                    print(
+                        'Error al guardar el documento en Firestore: $error');
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Valor Guardado'),
+                    ),
+                  );
+
+                  bool confirm = await showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: Text('Guardado Correctamente'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop(true);
+                          },
+                          child: Text('Ok'),
+                        ),
+                      ],
+                    ),
+                  );
+                  // Cierra el modal y retorna true para indicar que se guardó
+                  Navigator.of(context).pop(true);
+                }
+              },
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.network(
+                        imageFile.path!),
+                  ),
               ],
-            );
+            ),
+          );
           },
           initialWidget: SizedBox(
             height: 170,
@@ -946,23 +1158,272 @@ class _APanosCreatorState extends State<APanosCreator> {
         ),
       ),
     );
+    
+    // Si el usuario canceló (cerró el modal sin guardar), eliminar el hotspot huérfano
+    if (result != true) {
+      setState(() {
+        hotspotsArray.removeWhere((h) => 
+          h.latitude == lat && h.longitude == lon
+        );
+      });
+      _showSnackBar(
+        'Selección de destino cancelada',
+        backgroundColor: Colors.grey[700]!,
+        icon: Icons.info,
+      );
+    }
   }
 
   void firebasePanorama() {
     widget.actionParam360wdget!();
   }
+  
+  void _showWelcomeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          icon: Icon(Icons.panorama_photosphere, color: Colors.blue, size: 56),
+          title: Text('🎬 Creador de Tours 360°'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Sigue estos pasos para crear tu recorrido virtual:',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 16),
+                _buildStep('1', 'Sube tus imágenes panorámicas 360°', Icons.add_photo_alternate, Colors.blue),
+                SizedBox(height: 12),
+                _buildStep('2', 'Marca la imagen de inicio del recorrido', Icons.start, Colors.orange),
+                SizedBox(height: 12),
+                _buildStep('3', 'Crea hotspots tocando en la panorámica', Icons.add_location_alt, Colors.green),
+                SizedBox(height: 12),
+                _buildStep('4', 'Vista previa y publica tu tour', Icons.check_circle, Colors.purple),
+                SizedBox(height: 16),
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.amber[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.amber[200]!),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.tips_and_updates, color: Colors.amber[700], size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Tip: Las imágenes deben ser panoramas de 360° para mejor experiencia',
+                          style: TextStyle(fontSize: 11, color: Colors.amber[900]),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('¡EMPECEMOS!', style: TextStyle(fontWeight: FontWeight.bold)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+  
+  Widget _buildStep(String number, String text, IconData icon, Color color) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+          child: Center(
+            child: Text(
+              number,
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+            ),
+          ),
+        ),
+        SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 16, color: color),
+                  SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      text,
+                      style: TextStyle(fontSize: 13),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+  
+  // Widget para el stepper visual
+  Widget _buildStepperIndicator() {
+    final steps = [
+      {'icon': Icons.add_photo_alternate, 'label': 'Imágenes'},
+      {'icon': Icons.start, 'label': 'Inicio'},
+      {'icon': Icons.add_location_alt, 'label': 'Hotspots'},
+      {'icon': Icons.check_circle, 'label': 'Listo'},
+    ];
+    
+    return Container(
+      color: Colors.black87,
+      padding: EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: List.generate(steps.length, (index) {
+          final isActive = index == _currentStep;
+          final isCompleted = index < _currentStep;
+          
+          return Expanded(
+            child: Column(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: isCompleted ? Colors.green : (isActive ? Colors.blue : Colors.grey[700]),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isCompleted ? Icons.check : steps[index]['icon'] as IconData,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  steps[index]['label'] as String,
+                  style: TextStyle(
+                    color: isActive ? Colors.blue : (isCompleted ? Colors.green : Colors.grey),
+                    fontSize: 11,
+                    fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
+    );
+  }
+  
+  // Widget para el panel de estado
+  Widget _buildStatusPanel() {
+    return Container(
+      color: Colors.black54,
+      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildStatusItem(
+            Icons.photo_library,
+            '$_totalImages panoramas',
+            _totalImages > 0 ? Colors.green : Colors.grey,
+          ),
+          _buildStatusItem(
+            seHizoPrincipal ? Icons.check_circle : Icons.warning,
+            seHizoPrincipal ? 'Inicio OK' : 'Sin inicio',
+            seHizoPrincipal ? Colors.green : Colors.orange,
+          ),
+          _buildStatusItem(
+            Icons.pin_drop,
+            '$_totalHotspots conexiones',
+            _totalHotspots > 0 ? Colors.blue : Colors.grey,
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildStatusItem(IconData icon, String label, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: color, size: 16),
+        SizedBox(width: 4),
+        Text(
+          label,
+          style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500),
+        ),
+      ],
+    );
+  }
+  
+  // Widget para mostrar progreso de upload
+  Widget _buildUploadProgress() {
+    return Container(
+      color: Colors.blue[900],
+      padding: EdgeInsets.all(12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+              value: _totalToUpload > 0 ? _uploadProgress / _totalToUpload : null,
+            ),
+          ),
+          SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Subiendo imagenes panoramicas...',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  '$_uploadingCount de $_totalToUpload completadas',
+                  style: TextStyle(color: Colors.white70, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${(_uploadProgress / _totalToUpload * 100).toStringAsFixed(0)}%',
+            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
 
   //end state
 }
 
-Future<void> saveImageUrlToFirestore(String imageUrl) async {
+Future<String> saveImageUrlToFirestore(String imageUrl) async {
   try {
     final now = Timestamp.fromDate(DateTime.now());
-    // Map<String, Object> virtualData = {
-    //   'aFechaCreacion': now,
-    //   'nameTour': 'Casa0001',
-    //   'rutaStorage': 'ruta-carpeta-storage-paraborrarposteriormente',
-    // };
 
     Map<String, Object> toursData = {
       'aFechaCreacion': now,
@@ -975,19 +1436,18 @@ Future<void> saveImageUrlToFirestore(String imageUrl) async {
     // Add the imageUrl to a new document and get the reference
     DocumentReference docRef = await db
         .collection("virtualTours")
-        .doc(varIdVirtualTour) // Replace with dynamic ID if needed
+        .doc(varIdVirtualTour)
         .collection('tours')
         .add(toursData);
 
-    varImageSelect = docRef.id;
+    final documentId = docRef.id;
+    arrayTemp.add(documentId);
 
-    arrayTemp.add(docRef.id);
-
-    //QUE MARQUE EL USAURIO COMO PRINCIPAL AQUI JALA EL ULTIMO SUBIDO
-    print('Documents id: ${arrayTemp}');
+    print('Document created with ID: $documentId');
+    return documentId;
   } catch (error) {
     print('Error saving image URL to Firestore: $error');
-    // Handle error here
+    throw error; // Re-throw para que el llamador pueda manejarlo
   }
 }
 
@@ -1006,42 +1466,140 @@ Future<List<ImageFile>> pickImagesUsingFilePicker(bool allowMultiple) async {
             e.extension != null &&
             allowedExtensions.contains(e.extension?.toLowerCase()))
         .toList();
+    
+    // Inicializar tracking de uploads
+    final uploadingState = _APanosCreatorState._uploadState;
+    if (uploadingState != null) {
+      uploadingState._isUploading = true;
+      uploadingState._totalToUpload = selectedFiles.length;
+      uploadingState._uploadingCount = 0;
+      uploadingState._uploadProgress = 0;
+      uploadingState._uploadErrors.clear();
+    }
 
-    final uploadedImages = await Future.wait(selectedFiles.map((file) async {
-      // Prepare upload task based on platform (web vs. mobile)
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        // Handle web upload using bytes or data URL (replace with your actual logic)
-        final bytes = file.bytes != null ? file.bytes! : Uint8List(0);
-        uploadTask = FirebaseStorage.instance
-            .ref('propiedades/images/${file.name.toString()}')
-            .putData(bytes);
-      } else {
-        // Handle mobile upload using file path (replace with your actual logic)
-        final filePath =
-            file.path!; // Assuming you have access to file path on mobile
-        uploadTask = FirebaseStorage.instance
-            .ref('propiedades/images/${file.name.toString()}')
-            .putFile(File(filePath));
+    final uploadedImages = <ImageFile>[];
+    
+    // Verificar autenticación antes de subir
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('ERROR: Usuario no autenticado para subir imágenes');
+      if (uploadingState != null) {
+        uploadingState._isUploading = false;
+        uploadingState._showSnackBar(
+          'Debes iniciar sesión para subir imágenes',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
+        );
       }
+      return uploadedImages;
+    }
+    
+    print('Usuario autenticado: ${currentUser.uid}');
+    
+    for (var i = 0; i < selectedFiles.length; i++) {
+      final file = selectedFiles[i];
+      final fileName = file.name.toString();
+      
+      try {
+        // Validar tamaño de archivo (máximo 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          if (uploadingState != null) {
+            uploadingState._uploadErrors[fileName] = 'Archivo muy grande (máx 10MB)';
+            uploadingState._showSnackBar(
+              'Archivo muy grande: $fileName (máximo 10MB)',
+              backgroundColor: Colors.red,
+              icon: Icons.error,
+            );
+          }
+          continue;
+        }
+        
+        print('Subiendo archivo: $fileName (${file.size} bytes)');
+        
+        // Preparar upload task
+        UploadTask uploadTask;
+        if (kIsWeb) {
+          final bytes = file.bytes != null ? file.bytes! : Uint8List(0);
+          uploadTask = FirebaseStorage.instance
+              .ref('propiedades/images/$fileName')
+              .putData(bytes);
+        } else {
+          final filePath = file.path!;
+          uploadTask = FirebaseStorage.instance
+              .ref('propiedades/images/$fileName')
+              .putFile(File(filePath));
+        }
+        
+        // Escuchar progreso de subida
+        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+          if (uploadingState != null) {
+            final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+            uploadingState._imageUploadProgress[fileName] = progress;
+          }
+        });
 
-      // Upload the image and get download URL
-      final snapshot = await uploadTask.whenComplete(() => null);
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      // Save download URL to Firestore
-      print('full path:' + snapshot.ref.fullPath.toString());
-      await saveImageUrlToFirestore(downloadUrl);
+        // Upload the image and get download URL
+        final snapshot = await uploadTask.whenComplete(() => null);
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        
+        // Save download URL to Firestore and get the document ID
+        final documentId = await saveImageUrlToFirestore(downloadUrl);
+        
+        // Actualizar progreso
+        if (uploadingState != null) {
+          uploadingState._uploadingCount++;
+          uploadingState._uploadProgress++;
+          uploadingState._showSnackBar(
+            'Panorama ${i + 1}/${selectedFiles.length} subido correctamente',
+            backgroundColor: Colors.green,
+            icon: Icons.check_circle,
+          );
+        }
 
-      // Return updated ImageFile with download URL
-      return ImageFile(
-        UniqueKey().toString(),
-        name: file.name,
-        extension: varImageSelect!,
-        // Replace with downloadUrl obtained from Firebase Storage
-        bytes: null, // Remove bytes as download URL is available
-        path: downloadUrl,
-      );
-    }));
+        // Return updated ImageFile with download URL and document ID
+        uploadedImages.add(ImageFile(
+          UniqueKey().toString(),
+          name: file.name,
+          extension: documentId, // ✅ Usar el ID único del documento
+          bytes: null,
+          path: downloadUrl,
+        ));
+        
+      } catch (error) {
+        print('Error uploading $fileName: $error');
+        if (uploadingState != null) {
+          String errorMsg = 'Error al subir imagen';
+          if (error.toString().contains('network')) {
+            errorMsg = 'Error de red: Revisa tu conexión';
+          } else if (error.toString().contains('permission')) {
+            errorMsg = 'Error de permisos: Verifica autenticación';
+          } else if (error.toString().contains('storage')) {
+            errorMsg = 'Error de almacenamiento';
+          }
+          
+          uploadingState._uploadErrors[fileName] = errorMsg;
+          uploadingState._showSnackBar(
+            '$fileName: $errorMsg',
+            backgroundColor: Colors.red,
+            icon: Icons.error,
+          );
+        }
+      }
+    }
+    
+    // Finalizar upload
+    if (uploadingState != null) {
+      uploadingState._isUploading = false;
+      uploadingState._updateImageCount();
+      
+      if (uploadedImages.isNotEmpty) {
+        uploadingState._showSnackBar(
+          '${uploadedImages.length} panoramas subidos exitosamente',
+          backgroundColor: Colors.green[700]!,
+          icon: Icons.celebration,
+        );
+      }
+    }
 
     return uploadedImages;
   }
@@ -1062,32 +1620,148 @@ Future<List<ImageFile>> pickImagesUsingImagePicker(bool allowMultiple) async {
     }
   }
 
+  final uploadedImages = <ImageFile>[];
+
   if (pickedFiles != null && pickedFiles.isNotEmpty) {
-    final uploadedImages = await Future.wait(pickedFiles.map((file) async {
-      UploadTask uploadTask;
-      if (kIsWeb) {
-        final bytes = await file.readAsBytes();
-        uploadTask = FirebaseStorage.instance
-            .ref('propiedades/images/${file.name}')
-            .putData(bytes);
-      } else {
-        uploadTask = FirebaseStorage.instance
-            .ref('propiedades/images/${file.name}')
-            .putFile(File(file.path));
+    // Verificar autenticación antes de subir
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      print('ERROR: Usuario no autenticado para subir imágenes');
+      final uploadingState = _APanosCreatorState._uploadState;
+      if (uploadingState != null) {
+        uploadingState._showSnackBar(
+          'Debes iniciar sesión para subir imágenes',
+          backgroundColor: Colors.red,
+          icon: Icons.error,
+        );
       }
+      return uploadedImages;
+    }
+    
+    print('Usuario autenticado: ${currentUser.uid}');
+    
+    // Inicializar tracking de uploads
+    final uploadingState = _APanosCreatorState._uploadState;
+    if (uploadingState != null) {
+      uploadingState._isUploading = true;
+      uploadingState._totalToUpload = pickedFiles.length;
+      uploadingState._uploadingCount = 0;
+      uploadingState._uploadProgress = 0;
+      uploadingState._uploadErrors.clear();
+    }
+    
+    for (var i = 0; i < pickedFiles.length; i++) {
+      final file = pickedFiles[i];
+      final fileName = file.name;
+      
+      try {
+        print('Subiendo archivo: $fileName');
+        
+        UploadTask uploadTask;
+        if (kIsWeb) {
+          final bytes = await file.readAsBytes();
+          
+          // Validar tamaño (máximo 10MB)
+          if (bytes.length > 10 * 1024 * 1024) {
+            if (uploadingState != null) {
+              uploadingState._showSnackBar(
+                'Archivo muy grande: $fileName (máximo 10MB)',
+                backgroundColor: Colors.red,
+                icon: Icons.error,
+              );
+            }
+            continue;
+          }
+          
+          uploadTask = FirebaseStorage.instance
+              .ref('propiedades/images/$fileName')
+              .putData(bytes);
+        } else {
+          final fileObj = File(file.path);
+          final fileSize = await fileObj.length();
+          
+          // Validar tamaño
+          if (fileSize > 10 * 1024 * 1024) {
+            if (uploadingState != null) {
+              uploadingState._showSnackBar(
+                '❌ $fileName: Archivo muy grande (máximo 10MB)',
+                backgroundColor: Colors.red,
+                icon: Icons.error,
+              );
+            }
+            continue;
+          }
+          
+          uploadTask = FirebaseStorage.instance
+              .ref('propiedades/images/$fileName')
+              .putFile(fileObj);
+        }
+        
+        // Escuchar progreso
+        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+          if (uploadingState != null) {
+            final progress = snapshot.bytesTransferred / snapshot.totalBytes;
+            uploadingState._imageUploadProgress[fileName] = progress;
+          }
+        });
 
-      final snapshot = await uploadTask.whenComplete(() => null);
-      final downloadUrl = await snapshot.ref.getDownloadURL();
-      await saveImageUrlToFirestore(downloadUrl);
+        final snapshot = await uploadTask.whenComplete(() => null);
+        final downloadUrl = await snapshot.ref.getDownloadURL();
+        
+        // Save download URL to Firestore and get the document ID
+        final documentId = await saveImageUrlToFirestore(downloadUrl);
+        
+        // Actualizar progreso
+        if (uploadingState != null) {
+          uploadingState._uploadingCount++;
+          uploadingState._uploadProgress++;
+          uploadingState._showSnackBar(
+            '✓ Panorama ${i + 1}/${pickedFiles.length} subido correctamente',
+            backgroundColor: Colors.green,
+            icon: Icons.check_circle,
+          );
+        }
 
-      return ImageFile(
-        UniqueKey().toString(),
-        name: file.name,
-        extension: varImageSelect!,
-        bytes: null,
-        path: downloadUrl,
-      );
-    }));
+        uploadedImages.add(ImageFile(
+          UniqueKey().toString(),
+          name: file.name,
+          extension: documentId, // ✅ Usar el ID único del documento
+          bytes: null,
+          path: downloadUrl,
+        ));
+        
+      } catch (error) {
+        print('Error uploading $fileName: $error');
+        if (uploadingState != null) {
+          String errorMsg = 'Error al subir imagen';
+          if (error.toString().contains('network')) {
+            errorMsg = 'Error de red: Revisa tu conexión';
+          } else if (error.toString().contains('permission')) {
+            errorMsg = 'Error de permisos: Verifica autenticación';
+          }
+          
+          uploadingState._showSnackBar(
+            '❌ $fileName: $errorMsg',
+            backgroundColor: Colors.red,
+            icon: Icons.error,
+          );
+        }
+      }
+    }
+    
+    // Finalizar upload
+    if (uploadingState != null) {
+      uploadingState._isUploading = false;
+      uploadingState._updateImageCount();
+      
+      if (uploadedImages.isNotEmpty) {
+        uploadingState._showSnackBar(
+          '🎉 ${uploadedImages.length} panoramas subidos exitosamente',
+          backgroundColor: Colors.green[700]!,
+          icon: Icons.celebration,
+        );
+      }
+    }
 
     return uploadedImages;
   }

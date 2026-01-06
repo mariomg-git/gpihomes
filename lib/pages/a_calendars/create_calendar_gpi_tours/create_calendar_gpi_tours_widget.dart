@@ -50,25 +50,50 @@ class _CreateCalendarGpiToursWidgetState
           key: scaffoldKey,
           backgroundColor: FlutterFlowTheme.of(context).primaryBackground,
           appBar: AppBar(
-            backgroundColor: FlutterFlowTheme.of(context).secondaryBackground,
+            backgroundColor: FlutterFlowTheme.of(context).primary,
             automaticallyImplyLeading: false,
             leading: FlutterFlowIconButton(
               borderColor: Colors.transparent,
               borderRadius: 30.0,
               borderWidth: 1.0,
               buttonSize: 60.0,
-              icon: Icon(
+              icon: const Icon(
                 Icons.arrow_back_rounded,
-                color: FlutterFlowTheme.of(context).primaryText,
-                size: 30.0,
+                color: Colors.white,
+                size: 28.0,
               ),
               onPressed: () async {
                 context.pop();
               },
             ),
+            title: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Tours GPI',
+                  style: FlutterFlowTheme.of(context).headlineSmall.override(
+                        fontFamily: 'Poiret One',
+                        color: Colors.white,
+                        fontSize: 22.0,
+                        letterSpacing: 0.0,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                Text(
+                  'Calendario de citas disponibles',
+                  style: FlutterFlowTheme.of(context).bodySmall.override(
+                        fontFamily: 'Poiret One',
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 12.0,
+                        letterSpacing: 0.0,
+                      ),
+                ),
+              ],
+            ),
             actions: const [],
             centerTitle: false,
-            elevation: 2.0,
+            elevation: 0,
           ),
           body: SingleChildScrollView(
             child: Column(

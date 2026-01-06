@@ -385,6 +385,11 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               builder: (context, params) => const AsesorMenuWidget(),
             ),
             FFRoute(
+              name: 'adminUsersPage',
+              path: 'adminUsersPage',
+              builder: (context, params) => const AdminUsersPageWidget(),
+            ),
+            FFRoute(
               name: 'profile_pruebas',
               path: 'pruebas',
               builder: (context, params) => const ProfilePruebasWidget(),
@@ -395,7 +400,7 @@ GoRouter createRouter(AppStateNotifier appStateNotifier) => GoRouter(
               requireAuth: false,
               builder: (context, params) => params.isEmpty
                   ? const NavBarPage(initialPage: 'homePage_Comprar')
-                  : const HomePageComprarWidget(),
+                  : HomePageComprarWidget(),
             ),
             FFRoute(
               name: 'homePage_Publicar',

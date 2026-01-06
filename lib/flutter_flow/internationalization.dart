@@ -167,8 +167,8 @@ final kTranslationsMap = <Map<String, Map<String, String>>>[
       'es': 'Contraseña',
     },
     'unp9r3y4': {
-      'en': 'Enter your email here...',
-      'es': 'Introduzca su correo electrónico aquí...',
+      'en': 'Enter your password here...',
+      'es': 'Introduzca su contraseña aquí...',
     },
     'ce9lxqq1': {
       'en': '',

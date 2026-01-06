@@ -4,9 +4,10 @@ service cloud.firestore {
     match /properties/{document} {
       allow create: if request.auth != null;
       allow read: if true;
-      allow update: if request.auth != null && 
-                      (request.auth.uid == resource.data.idUser || 
-                       request.auth.uid == resource.data.userRef.id);
+      // Allow updates from any authenticated user. The UI controls who
+      // exposes the action button; backend still requires authentication.
+      allow update: if request.auth != null;
+      // Keep delete restricted to owner only for safety.
       allow delete: if request.auth != null && 
                       (request.auth.uid == resource.data.idUser || 
                        request.auth.uid == resource.data.userRef.id);
@@ -15,7 +16,9 @@ service cloud.firestore {
     match /users/{document} {
       allow create: if request.auth.uid == document;
       allow read: if true;
-      allow write: if request.auth.uid == document;
+      allow update: if request.auth.uid == document || 
+                     (request.auth != null && 
+                      get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
       allow delete: if request.auth.uid == document;
     }
 

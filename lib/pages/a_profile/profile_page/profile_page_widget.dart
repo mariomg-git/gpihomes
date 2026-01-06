@@ -65,10 +65,11 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
 
               final columnUsersRecord = snapshot.data!;
 
-              return SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
+              return SafeArea(
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.max,
+                    children: [
                     Container(
                       width: MediaQuery.sizeOf(context).width * 1.0,
                       height: 160.0,
@@ -157,8 +158,7 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
                       mainAxisSize: MainAxisSize.max,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        if (valueOrDefault(currentUserDocument?.rol, '') ==
-                            'admin')
+                        if (valueOrDefault(columnUsersRecord.isAdmin, false))
                           AuthUserStreamWidget(
                             builder: (context) => InkWell(
                               splashColor: Colors.transparent,
@@ -988,6 +988,7 @@ class _ProfilePageWidgetState extends State<ProfilePageWidget> {
                     ),
                   ],
                 ),
+              ),
               );
             },
           ),

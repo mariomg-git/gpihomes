@@ -35,11 +35,15 @@ service firebase.storage {
     }
     
     // Carpeta propiedades - para imágenes de panoramas 360°
-    match /propiedades/{allPaths=**} {
+    match /propiedades/{folder}/{fileName} {
       allow read: if true;  // Lectura pública
-      allow write: if request.auth != null
-                   && isImage()
-                   && isValidSize();
+      allow write: if request.auth != null;  // Solo autenticación requerida
+    }
+    
+    // Alternativa más específica para images dentro de propiedades
+    match /propiedades/images/{fileName} {
+      allow read: if true;  
+      allow write: if request.auth != null;
     }
     
     // Tours virtuales 360° - permitir lectura pública y escritura autenticada

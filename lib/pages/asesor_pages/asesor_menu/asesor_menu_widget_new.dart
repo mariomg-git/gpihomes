@@ -168,175 +168,75 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
     required Color color,
     required VoidCallback onTap,
     required String animationKey,
-    String? badge,
   }) {
     return Material(
       color: Colors.transparent,
-      elevation: 6,
-      shadowColor: color.withOpacity(0.4),
+      elevation: 4,
+      shadowColor: color.withOpacity(0.3),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
+        borderRadius: BorderRadius.circular(20.0),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(24.0),
-        splashColor: Colors.white.withOpacity(0.3),
-        highlightColor: Colors.white.withOpacity(0.1),
-        child: Ink(
+        borderRadius: BorderRadius.circular(20.0),
+        child: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               colors: [
                 color,
-                color.withOpacity(0.75),
+                color.withOpacity(0.7),
               ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(24.0),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.1),
-              width: 1.5,
-            ),
+            borderRadius: BorderRadius.circular(20.0),
           ),
-          child: Stack(
-            children: [
-              // Decorative circle background
-              Positioned(
-                top: -20,
-                right: -20,
-                child: Container(
-                  width: 100,
-                  height: 100,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.05),
+                  ),
+                  child: Icon(
+                    icon,
+                    color: Colors.white,
+                    size: 32.0,
                   ),
                 ),
-              ),
-              
-              // Main content
-              Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Badge indicator (if provided)
-                    if (badge != null)
-                      Align(
-                        alignment: Alignment.topRight,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            badge,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    
-                    const Spacer(),
-                    
-                    // Icon with enhanced design
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        icon,
+                const SizedBox(height: 12),
+                Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  style: FlutterFlowTheme.of(context).bodyLarge.override(
+                        fontFamily: 'Poiret One',
                         color: Colors.white,
-                        size: 36.0,
+                        fontSize: 16.0,
+                        letterSpacing: 0.0,
+                        fontWeight: FontWeight.bold,
                       ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Title
-                    Text(
-                      title,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: FlutterFlowTheme.of(context).bodyLarge.override(
-                            fontFamily: 'Poiret One',
-                            color: Colors.white,
-                            fontSize: 18.0,
-                            letterSpacing: 0.0,
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    
-                    const SizedBox(height: 8),
-                    
-                    // Subtitle/Description
-                    Text(
-                      subtitle,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: FlutterFlowTheme.of(context).bodySmall.override(
-                            fontFamily: 'Poiret One',
-                            color: Colors.white.withOpacity(0.95),
-                            fontSize: 13.0,
-                            letterSpacing: 0.0,
-                          ),
-                    ),
-                    
-                    const Spacer(),
-                    
-                    // Arrow indicator
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.arrow_forward_rounded,
-                        color: Colors.white,
-                        size: 16.0,
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-            ],
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  textAlign: TextAlign.center,
+                  style: FlutterFlowTheme.of(context).bodySmall.override(
+                        fontFamily: 'Poiret One',
+                        color: Colors.white.withOpacity(0.9),
+                        fontSize: 12.0,
+                        letterSpacing: 0.0,
+                      ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     ).animateOnPageLoad(animationsMap[animationKey]!);
-  }
-
-  int _getCrossAxisCount(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width > 1200) return 3;
-    if (width > 600) return 2;
-    return 1;
-  }
-
-  double _getChildAspectRatio(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-    if (width > 600) return 0.85;
-    return 1.1;
   }
 
   @override
@@ -394,10 +294,7 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                       // Header con bienvenida
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24.0,
-                          vertical: 28.0,
-                        ),
+                        padding: const EdgeInsets.all(20.0),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -407,128 +304,67 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                          borderRadius: BorderRadius.circular(20.0),
+                          borderRadius: BorderRadius.circular(16.0),
                           boxShadow: [
                             BoxShadow(
-                              color: FlutterFlowTheme.of(context).primary.withOpacity(0.4),
-                              blurRadius: 12,
-                              offset: const Offset(0, 6),
+                              color: FlutterFlowTheme.of(context).primary.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(12),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withOpacity(0.2),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: const Icon(
-                                    Icons.dashboard_customize_rounded,
-                                    color: Colors.white,
-                                    size: 28,
-                                  ),
-                                ),
-                                const SizedBox(width: 16),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        '👋 Bienvenido, Asesor',
-                                        style: FlutterFlowTheme.of(context)
-                                            .headlineSmall
-                                            .override(
-                                              fontFamily: 'Poiret One',
-                                              color: Colors.white,
-                                              fontSize: 22.0,
-                                              letterSpacing: 0.0,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Panel de Gestión de Tours',
-                                        style: FlutterFlowTheme.of(context)
-                                            .bodyMedium
-                                            .override(
-                                              fontFamily: 'Poiret One',
-                                              color: Colors.white.withOpacity(0.95),
-                                              fontSize: 14.0,
-                                              letterSpacing: 0.0,
-                                            ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                            Text(
+                              '👋 Bienvenido',
+                              style: FlutterFlowTheme.of(context).headlineSmall.override(
+                                fontFamily: 'Poiret One',
+                                color: Colors.white,
+                                letterSpacing: 0.0,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Gestiona tus tours y citas',
+                              style: FlutterFlowTheme.of(context).bodyMedium.override(
+                                fontFamily: 'Poiret One',
+                                color: Colors.white.withOpacity(0.9),
+                                letterSpacing: 0.0,
+                              ),
                             ),
                           ],
                         ),
                       ),
                       
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       
                       // Sección: Gestión de Tours
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF667EEA),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Gestión de Tours',
-                              style: FlutterFlowTheme.of(context).titleLarge.override(
-                                fontFamily: 'Poiret One',
-                                fontSize: 20.0,
-                                letterSpacing: 0.0,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        '📅 Gestión de Tours',
+                        style: FlutterFlowTheme.of(context).titleLarge.override(
+                          fontFamily: 'Poiret One',
+                          letterSpacing: 0.0,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text(
-                          'Organiza y programa visitas a propiedades',
-                          style: FlutterFlowTheme.of(context).bodySmall.override(
-                            fontFamily: 'Poiret One',
-                            color: FlutterFlowTheme.of(context).secondaryText,
-                            fontSize: 13.0,
-                            letterSpacing: 0.0,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       
                       GridView.count(
-                        crossAxisCount: _getCrossAxisCount(context),
+                        crossAxisCount: 2,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: 16.0,
                         crossAxisSpacing: 16.0,
-                        childAspectRatio: _getChildAspectRatio(context),
+                        childAspectRatio: 0.9,
                         children: [
                           _buildMenuCard(
                             context,
                             icon: Icons.calendar_month_rounded,
                             title: 'Tours GPI',
-                            subtitle: 'Calendario de citas disponibles',
+                            subtitle: 'Crear citas',
                             color: const Color(0xFF667EEA),
-                            badge: 'Principal',
                             onTap: () {
                               context.pushNamed(
                                 'createCalendarGpiTours',
@@ -546,7 +382,7 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                             context,
                             icon: Icons.event_available_rounded,
                             title: 'Mis Citas',
-                            subtitle: 'Revisa tus citas programadas',
+                            subtitle: 'Ver programadas',
                             color: const Color(0xFF764BA2),
                             onTap: () {
                               context.pushNamed(
@@ -565,7 +401,7 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                             context,
                             icon: Icons.edit_calendar_rounded,
                             title: 'Agendar Tour',
-                            subtitle: 'Programa nueva visita GPI',
+                            subtitle: 'Nueva cita GPI',
                             color: const Color(0xFFFA8BFF),
                             onTap: () {
                               context.pushNamed(
@@ -586,9 +422,9 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                           ),
                           _buildMenuCard(
                             context,
-                            icon: Icons.person_add_alt_1_rounded,
-                            title: 'Visita Cliente',
-                            subtitle: 'Agenda cita para un cliente',
+                            icon: Icons.person_add_rounded,
+                            title: 'Visita Usuario',
+                            subtitle: 'Agendar cliente',
                             color: const Color(0xFF2BDA8E),
                             onTap: () {
                               context.pushNamed(
@@ -606,64 +442,33 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                         ],
                       ),
                       
-                      const SizedBox(height: 32),
+                      const SizedBox(height: 24),
                       
                       // Sección: Administración
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4.0),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 4,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFF6B9D),
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              'Administración',
-                              style: FlutterFlowTheme.of(context).titleLarge.override(
-                                fontFamily: 'Poiret One',
-                                fontSize: 20.0,
-                                letterSpacing: 0.0,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                      Text(
+                        '⚙️ Administración',
+                        style: FlutterFlowTheme.of(context).titleLarge.override(
+                          fontFamily: 'Poiret One',
+                          letterSpacing: 0.0,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Padding(
-                        padding: const EdgeInsets.only(left: 20.0),
-                        child: Text(
-                          'Gestiona visitas pendientes y verificaciones',
-                          style: FlutterFlowTheme.of(context).bodySmall.override(
-                            fontFamily: 'Poiret One',
-                            color: FlutterFlowTheme.of(context).secondaryText,
-                            fontSize: 13.0,
-                            letterSpacing: 0.0,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       
                       GridView.count(
-                        crossAxisCount: _getCrossAxisCount(context),
+                        crossAxisCount: 2,
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         mainAxisSpacing: 16.0,
                         crossAxisSpacing: 16.0,
-                        childAspectRatio: _getChildAspectRatio(context),
+                        childAspectRatio: 0.9,
                         children: [
                           _buildMenuCard(
                             context,
                             icon: Icons.pending_actions_rounded,
                             title: 'Pendientes',
-                            subtitle: 'Gestiona visitas GPI pendientes',
+                            subtitle: 'Visitas GPI',
                             color: const Color(0xFFFF6B9D),
-                            badge: 'Nuevo',
                             onTap: () {
                               context.pushNamed(
                                 'createCalendarDateGPI',
@@ -683,9 +488,9 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                           ),
                           _buildMenuCard(
                             context,
-                            icon: Icons.verified_user_rounded,
+                            icon: Icons.verified_rounded,
                             title: 'Verificar',
-                            subtitle: 'Check-in y check-out de visitas',
+                            subtitle: 'Check-in/out',
                             color: const Color(0xFFFEC84B),
                             onTap: () {
                               context.pushNamed('homePage_Autorizate');
@@ -696,6 +501,49 @@ class _AsesorMenuWidgetState extends State<AsesorMenuWidget>
                       ),
                       
                       const SizedBox(height: 24),
+                      
+                      // Debug: imprimir email del usuario
+                      Builder(
+                        builder: (context) {
+                          print('Current User Email in asesor menu: $currentUserEmail');
+                          return const SizedBox.shrink();
+                        },
+                      ),
+                      
+                      // Sección: Super Admin (solo para emails específicos)
+                      if (currentUserEmail?.toLowerCase() == 'mario@gmail.com' || currentUserEmail?.toLowerCase() == 'mariomg.tj@gmail.com') ...[
+                        Text(
+                          '🔑 Super Admin',
+                          style: FlutterFlowTheme.of(context).titleLarge.override(
+                            fontFamily: 'Poiret One',
+                            letterSpacing: 0.0,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        GridView.count(
+                          crossAxisCount: 2,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          mainAxisSpacing: 16.0,
+                          crossAxisSpacing: 16.0,
+                          childAspectRatio: 0.9,
+                          children: [
+                            _buildMenuCard(
+                              context,
+                              icon: Icons.admin_panel_settings_rounded,
+                              title: 'Administrar Usuarios',
+                              subtitle: 'Permisos de admin',
+                              color: const Color(0xFFDC2626),
+                              onTap: () {
+                                context.pushNamed('adminUsersPage');
+                              },
+                              animationKey: 'containerOnPageLoadAnimation7',
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                      ],
                     ],
                   ),
                 ),

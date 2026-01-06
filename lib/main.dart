@@ -165,13 +165,13 @@ class _NavBarPageState extends State<NavBarPage> {
     final Map<String, Widget> tabs = isLoggedIn
         ? {
             'homePage_MAIN': const HomePageMAINWidget(),
-            'homePage_Comprar': const HomePageComprarWidget(),
+            'homePage_Comprar': HomePageComprarWidget(),
             'homePage_Publicar': const HomePagePublicarWidget(),
             'profilePage': const ProfilePageWidget(),
           }
         : {
             'homePage_MAIN': const HomePageMAINWidget(),
-            'homePage_Comprar': const HomePageComprarWidget(),
+            'homePage_Comprar': HomePageComprarWidget(),
             'login': const LoginWidget(),
           };
     

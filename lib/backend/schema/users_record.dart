@@ -60,6 +60,11 @@ class UsersRecord extends FirestoreRecord {
   bool get isHost => _isHost ?? false;
   bool hasIsHost() => _isHost != null;
 
+  // "isAdmin" field.
+  bool? _isAdmin;
+  bool get isAdmin => _isAdmin ?? false;
+  bool hasIsAdmin() => _isAdmin != null;
+
   // "numberProperties" field.
   int? _numberProperties;
   int get numberProperties => _numberProperties ?? 0;
@@ -90,6 +95,7 @@ class UsersRecord extends FirestoreRecord {
     _phoneNumber = snapshotData['phone_number'] as String?;
     _bio = snapshotData['bio'] as String?;
     _isHost = snapshotData['isHost'] as bool?;
+    _isAdmin = snapshotData['isAdmin'] as bool?;
     _numberProperties = castToType<int>(snapshotData['numberProperties']);
     _numberActiveBookings =
         castToType<int>(snapshotData['numberActiveBookings']);
@@ -139,8 +145,7 @@ Map<String, dynamic> createUsersRecordData({
   DateTime? createdTime,
   String? phoneNumber,
   String? bio,
-  bool? isHost,
-  int? numberProperties,
+  bool? isHost,  bool? isAdmin,  int? numberProperties,
   int? numberActiveBookings,
   String? rol,
 }) {
@@ -155,6 +160,7 @@ Map<String, dynamic> createUsersRecordData({
       'phone_number': phoneNumber,
       'bio': bio,
       'isHost': isHost,
+      'isAdmin': isAdmin,
       'numberProperties': numberProperties,
       'numberActiveBookings': numberActiveBookings,
       'rol': rol,
@@ -179,6 +185,7 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e1?.phoneNumber == e2?.phoneNumber &&
         e1?.bio == e2?.bio &&
         e1?.isHost == e2?.isHost &&
+        e1?.isAdmin == e2?.isAdmin &&
         e1?.numberProperties == e2?.numberProperties &&
         e1?.numberActiveBookings == e2?.numberActiveBookings &&
         e1?.rol == e2?.rol &&
@@ -196,6 +203,7 @@ class UsersRecordDocumentEquality implements Equality<UsersRecord> {
         e?.phoneNumber,
         e?.bio,
         e?.isHost,
+        e?.isAdmin,
         e?.numberProperties,
         e?.numberActiveBookings,
         e?.rol,

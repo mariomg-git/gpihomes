@@ -605,6 +605,7 @@ class _HomePageMAINWidgetState extends State<HomePageMAINWidget> {
                     },
                   ),
                 ),
+                const SizedBox(height: 80.0),
               ],
             ),
           ),

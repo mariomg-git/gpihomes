@@ -1524,12 +1524,26 @@ class _PropertyDetailsAtorizeWidgetState
                           ),
                           FFButtonWidget(
                             onPressed: () async {
-                              await widget.propertyRef!.reference
-                                  .update(createPropertiesRecordData(
-                                status: 'Revisado',
-                              ));
+                              try {
+                                await widget.propertyRef!.reference
+                                    .update(createPropertiesRecordData(
+                                  status: 'Revisado',
+                                ));
 
-                              context.pushNamed('homePage_Autorizate');
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Estatus actualizado a Revisado'),
+                                  ),
+                                );
+
+                                context.pushNamed('homePage_Autorizate');
+                              } catch (e) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Error al actualizar estatus: $e'),
+                                  ),
+                                );
+                              }
                             },
                             text: FFLocalizations.of(context).getText(
                               '4ybdzoj0' /* Approved */,
